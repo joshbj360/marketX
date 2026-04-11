@@ -5,27 +5,10 @@
     <div class="w-full space-y-4 px-2 sm:px-4">
       <!-- Initial Splash Screen -->
       <Transition name="splash" mode="out-in">
-        <div
+        <SplashScreen
           v-if="!hasMounted || (pending && !mainFeed.length)"
           key="splash"
-          class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gray-50 dark:bg-neutral-950"
-        >
-          <div class="relative flex items-center justify-center">
-            <div
-              class="absolute h-24 w-24 animate-ping rounded-full bg-brand/30"
-            />
-            <div
-              class="z-10 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand shadow-2xl shadow-brand/40"
-            >
-              <Icon name="mdi:shopping-outline" size="32" class="text-white" />
-            </div>
-          </div>
-          <h1
-            class="mt-6 text-lg font-black uppercase tracking-[0.25em] text-gray-900 dark:text-white"
-          >
-            {{ $config.public.siteName || 'MARKETX' }}
-          </h1>
-        </div>
+        />
         <div
           v-else-if="hasMounted && error"
           key="error"
@@ -462,6 +445,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from '#imports'
 
 import HomeLayout from '~~/layers/feed/app/layouts/HomeLayout.vue'
+import SplashScreen from '~~/layers/feed/app/components/SplashScreen.vue'
 import StoryUploadModal from '~~/layers/feed/app/components/modals/StoryUploadModal.vue'
 import ProductDetailModal from '~~/layers/commerce/app/components/modals/ProductDetailModal.vue'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
