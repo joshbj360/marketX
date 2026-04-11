@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /buyer/
+Disallow: /seller/
+Disallow: /sellers/dashboard
+Disallow: /sellers/create
+Disallow: /checkout
+Disallow: /api/
+
+Sitemap: https://styli.app/sitemap.xml

@@ -1,0 +1,63 @@
+{
+  "name": "MarketX",
+  "short_name": "MarketX",
+  "description": "Your business, fully alive. Discover stores, buy local, sell globally.",
+  "theme_color": "#F43F5E",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/?source=pwa",
+  "id": "/",
+  "categories": ["shopping", "business", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "Browse trending products and stores",
+      "url": "/discover?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/shortcut-discover.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Near Me",
+      "short_name": "Near Me",
+      "description": "Find stores around you",
+      "url": "/map?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/shortcut-map.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "My Store",
+      "short_name": "Sell",
+      "description": "Manage your store",
+      "url": "/seller/dashboard?source=pwa-shortcut",
+      "icons": [{ "src": "/icons/shortcut-sell.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-mobile.svg",
+      "sizes": "390x844",
+      "type": "image/svg+xml"
+    }
+  ]
+}

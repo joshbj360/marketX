@@ -1,0 +1,29 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # These are public/non-secret values that appear in source code by design.
+  # NUXT_PUBLIC_* vars are intentionally embedded in client-side bundles.
+  # RATE_LIMIT_* are plain numeric config values, not credentials.
+  # CLOUDINARY_CLOUD_NAME is part of public Cloudinary URLs.
+  SECRETS_SCAN_OMIT_KEYS = "NUXT_PUBLIC_BASE_URL,NUXT_PUBLIC_SITE_NAME,CLOUDINARY_CLOUD_NAME,CLOUDINARY_UPLOAD_PRESET,PAYSTACK_PUBLIC_KEY,RATE_LIMIT_REFRESH_TOKEN_WINDOW,RATE_LIMIT_VERIFY_EMAIL_SEND_WINDOW,RATE_LIMIT_REGISTER_WINDOW,SENDER_EMAIL"
+
+  # The Nitro server bundle legitimately contains server-only env vars at runtime.
+  # These paths are never served to the browser — they run inside Netlify Functions.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/functions-internal,dist/_nuxt"
+
+[[headers]]
+  for = "/_nuxt/builds/meta/*"
+  [headers.values]
+    cache-control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/_nuxt/builds/*"
+  [headers.values]
+    cache-control = "public, max-age=1, immutable"
+
+[[headers]]
+  for = "/_nuxt/*"
+  [headers.values]
+    cache-control = "public, max-age=31536000, immutable"

@@ -1,0 +1,850 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector]
+}
+
+model Profile {
+  id                String         @id @db.Uuid
+  email             String         @unique
+  role              String         @default("user")
+  avatar            String?
+  username          String?
+  password_hash     String
+  created_at        DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime       @updatedAt @db.Timestamptz(6)
+  email_verified_at DateTime?      @db.Timestamptz(6)
+  email_verified    Boolean        @default(false)
+  bio               String?
+  location          String?
+  links             Json?
+  addresses         Addresses[]    @relation("UserAddress")
+  cartItems         CartItem[]
+  comments          Comment[]      @relation("UserComments")
+  commentLikes      CommentLike[]  @relation("UserCommentLikes")
+  conversationsP1   Conversation[] @relation("ConversationP1")
+  conversationsP2   Conversation[] @relation("ConversationP2")
+  // People I am following (I am the follower)
+  following         Follow[]       @relation("UserAsFollower")
+
+  likes             Like[]            @relation("ProfileLikes")
+  media             Media[]           @relation("MediaAuthor")
+  sentMessages      Message[]         @relation("MessageSender")
+  sentNotifications Notification[]    @relation("NotificationFromActor")
+  notifications     Notification[]    @relation("NotificationToProfile")
+  orders            Orders[]          @relation("BuyerOrders")
+  posts             Post[]            @relation("UserPosts")
+  savedPosts        SavedPost[]       @relation("UserSavedPosts")
+  postLikes         PostLike[]        @relation("UserProfileLikes")
+  sellerProfile     SellerProfile[]   @relation("SellerProfile")
+  shares            Share[]           @relation("ProfileShares")
+  stories           Story[]           @relation("UserStories")
+  sessions          Session[]         @relation("UserSessions")
+
+  affiliateCode      String?        @unique
+
+  email_verification EmailVerificationToken[]
+  password_reset     PasswordResetToken[]
+  audit_logs         AuditLog[]
+  user_settings      UserSettings?
+  affiliateOrders    Orders[]       @relation("AffiliateOrders")
+  reviews            Review[]       @relation("UserReviews")
+}
+
+model SellerProfile {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId             String                 @db.Uuid // ← REMOVED @unique
+  store_name            String?
+  store_description     String?
+  store_logo            String?
+  store_banner          String?
+  store_location        String?
+  store_phone           String?
+  store_website         String?
+  store_socials         Json?
+  followers_count       Int                    @default(0)
+  is_verified           Boolean                @default(false)
+  is_active             Boolean                @default(true)
+  verification_status   VerificationStatus     @default(PENDING)
+  verification_reason   String?
+  created_at            DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime               @updatedAt @db.Timestamptz(6)
+  store_slug            String                 @unique
+  auto_answer_enabled   Boolean                @default(false)
+  default_currency      String                 @default("NGN")
+  isPremium             Boolean                @default(false)
+  // Shipping origin — where this store ships from
+  shipFromName          String?
+  shipFromAddress       String?
+  shipFromCity          String?
+  shipFromState         String?
+  shipFromZip           String?
+  shipFromCountry       String                 @default("NG")
+  shipFromPhone         String?
+  // ── GPS / Discovery ──────────────────────────────────────────────────────
+  latitude       Float?
+  longitude      Float?
+  city           String?
+  state          String?
+  locationLabel  String?  // human-readable e.g. "Yaba, Lagos"
+  hideLocation   Boolean  @default(false)  // ghost mode — hides from map
+  lastActiveAt   DateTime? @db.Timestamptz(6) // updated on dashboard visit — drives online status
+  businessHours  Json?    // { mon:{open,close,closed}, tue:..., ... } — weekly schedule
+  timezone       String   @default("Africa/Lagos") // IANA timezone for open/closed computation
+  media                 Media[]                @relation("MediaSeller")
+  products              Products[]             @relation("SellerProducts")
+  profile               Profile                @relation("SellerProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  wallet                SellerWallet?
+  bankAccounts          BankAccount[]
+  verificationDocuments VerificationDocument[]
+  conversations         Conversation[]         @relation("ConversationSeller")
+
+  @@unique([profileId, store_slug]) // ← NEW: Composite unique (same user, different slug OK)
+  @@index([profileId]) // ← NEW: Index on profileId for faster lookups
+}
+
+model Conversation {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(6)
+  lastMessageAt DateTime? @db.Timestamptz(6)
+
+  // 1. Participant 1: Always the User (Buyer/Initiator)
+  participant1Id String  @db.Uuid
+  participant1   Profile @relation("ConversationP1", fields: [participant1Id], references: [id])
+
+  // 2. Participant 2 (Social): Another User
+  // Changed to OPTIONAL (?) to support seller chats instead
+  participant2Id String?  @db.Uuid
+  participant2   Profile? @relation("ConversationP2", fields: [participant2Id], references: [id])
+
+  // 3. Seller Target (Commerce): A Store
+  // NEW optional field for store-based chats
+  sellerId String?        @db.Uuid
+  seller   SellerProfile? @relation("ConversationSeller", fields: [sellerId], references: [id])
+
+  // Context: Optional product link
+  currentProductId Int?
+  currentProduct   Products? @relation("ConversationProduct", fields: [currentProductId], references: [id])
+
+  messages      Message[]
+  notifications Notification[] @relation("NotificationToConversation")
+
+  // Constraints:
+  // Ensure a unique chat exists between a User and another User
+  @@unique([participant1Id, participant2Id])
+  // Ensure a unique chat exists between a User and a Seller
+  @@unique([participant1Id, sellerId])
+  @@index([participant1Id])
+  @@index([sellerId])
+}
+
+model Message {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String       @db.Uuid
+  senderId       String       @db.Uuid
+  content        String
+  read           Boolean      @default(false)
+  sentAt         DateTime     @default(now()) @db.Timestamptz(6)
+  isAiResponse   Boolean      @default(false)
+  productId      Int?
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  product        Products?    @relation("ProductMessages", fields: [productId], references: [id])
+  sender         Profile      @relation("MessageSender", fields: [senderId], references: [id])
+}
+
+model Products {
+  id             Int                 @id @default(autoincrement())
+  title          String
+  slug           String              @unique
+  description    String?
+  price          Float
+  discount       Float?
+  status         ProductStatus?      @default(DRAFT)
+  sellerId       String              @db.Uuid
+  created_at     DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime            @updatedAt @db.Timestamptz(6)
+  soldCount      Int                 @default(0)
+  averageRating  Float?
+  totalReviews   Int                 @default(0)
+  isFeatured     Boolean             @default(false)
+  bannerImageUrl String?
+  SKU            String?             @unique
+  isAccessory    Boolean             @default(false)
+  store_slug     String
+  // embedding      Unsupported("vector")?
+  isThrift              Boolean             @default(false)
+  affiliateCommission   Float?
+  socialCaptions        Json?
+  // ── Unified Product Post ──────────────────────────────────────────────────
+  /// Publish this product into the main social feed as a Post
+  showInFeed     Boolean  @default(false)
+  /// Publish this product into the Reels surface
+  showInReels    Boolean  @default(false)
+  /// The auto-created Post record linked to this product (1-to-1)
+  linkedPostId   String?  @unique @db.Uuid
+  linkedPost     Post?    @relation("ProductLinkedPost", fields: [linkedPostId], references: [id], onDelete: SetNull)
+  // ── Deals ──────────────────────────────────────────────────────────────────
+  /// True when this product is a time-limited flash deal
+  isDeal         Boolean  @default(false)
+  /// When the deal expires (null = no expiry / always-on deal)
+  dealEndsAt     DateTime? @db.Timestamptz(6)
+  // ── Pre-loved / Thrift ────────────────────────────────────────────────────
+  /// Physical condition for pre-loved/thrift items
+  condition      String?  // NEW_WITH_TAGS | LIKE_NEW | GOOD | FAIR | POOR
+  comments       Comment[]
+  conversations  Conversation[]      @relation("ConversationProduct")
+  likes          Like[]
+  media          Media[]
+  messages       Message[]           @relation("ProductMessages")
+  notifications  Notification[]      @relation("NotificationToProduct")
+  category       ProductCategories[] @relation("ProductCategory")
+  taggedInPosts  ProductPostTag[]
+  appearsIn      ProductRelation[]   @relation("AppearsIn")
+  styledWith     ProductRelation[]   @relation("StyledWith")
+  tags           ProductTags[]       @relation("ProductTag")
+  variants       ProductVariant[]
+  offers         ProductOffer[]
+  reviews        Review[]            @relation("ProductReviews")
+  seller         SellerProfile       @relation("SellerProducts", fields: [sellerId], references: [id], onDelete: Cascade)
+  shares         Share[]             @relation("ProductShare")
+  stories        Story[]
+
+  @@index([sellerId])
+}
+
+model ProductVariant {
+  id         Int         @id @default(autoincrement())
+  size       String
+  stock      Int
+  price      Float?
+  productId  Int
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  product    Products    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, size])
+}
+
+/// Volume-discount offer: "Buy X or more, get Y% off"
+model ProductOffer {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  /// Minimum quantity to trigger the offer
+  minQuantity Int
+  /// Discount percentage (0-100)
+  discount    Float
+  /// Optional seller-written label shown to buyers
+  label       String?
+  isActive    Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  product     Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Orders {
+  id              Int            @id @default(autoincrement())
+  userId          String         @db.Uuid
+  /// Legacy Stripe reference — now used as generic payment reference
+  stripeId        String         @unique
+  /// Paystack transaction reference (populated after payment init)
+  paymentRef      String?        @unique
+  paymentStatus   PaymentStatus  @default(UNPAID)
+  name            String
+  address         String
+  zipcode         String
+  county          String
+  country         String
+  /// Shipping cost in cents
+  shippingCost    Int            @default(0)
+  shippingZone    String?
+  estimatedDays   String?
+  totalAmount     Int
+  status          OrderStatus    @default(PENDING)
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime       @updatedAt @db.Timestamptz(6)
+  paymentMethod   String
+  shipper          String?
+  trackingNumber   String?
+  /// URL to the shipping label PDF (populated after shipment is created)
+  labelUrl         String?
+  /// Which shipping provider created this shipment: 'sendbox' | 'shippo'
+  shippingProvider String?
+  payoutAmount     Int?
+  /// Timestamp when seller marked the order as shipped
+  shippedAt        DateTime?
+  /// Affiliate who referred this order (if any)
+  affiliateUserId  String?        @db.Uuid
+  /// Total affiliate cut for this order in cents
+  affiliateCut     Int            @default(0)
+  notifications   Notification[] @relation("NotificationToOrder")
+  orderItem       OrderItem[]
+  user            Profile        @relation("BuyerOrders", fields: [userId], references: [id])
+  affiliate       Profile?       @relation("AffiliateOrders", fields: [affiliateUserId], references: [id])
+}
+
+model OrderItem {
+  id           Int            @id @default(autoincrement())
+  orderId      Int
+  quantity     Int
+  /// Unit price in cents at time of order
+  price        Float          @default(0)
+  /// Affiliate cut for this line item in cents
+  affiliateCut Int            @default(0)
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+  variantId    Int
+  order        Orders         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant      ProductVariant @relation(fields: [variantId], references: [id])
+}
+
+model CartItem {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quantity   Int
+  created_at DateTime       @default(now())
+  userId     String         @db.Uuid
+  variantId  Int
+  user       Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, variantId])
+}
+
+model Addresses {
+  id         Int      @id @default(autoincrement())
+  userId     String   @db.Uuid
+  label      String?
+  name       String
+  address    String
+  county     String
+  state      String
+  zipcode    String
+  country    String
+  phone      String
+  isDefault  Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @updatedAt @db.Timestamptz(6)
+  user       Profile  @relation("UserAddress", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Global platform-level shipping zones (not seller-scoped)
+model GlobalShippingZone {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String   @unique
+  countries     String[]
+  /// Base shipping cost in cents
+  baseRate      Int
+  /// Additional cost per kg in cents
+  perKgRate     Int      @default(0)
+  /// e.g. "3-5 business days"
+  estimatedDays String
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+}
+
+model BankAccount {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sellerId      String        @db.Uuid
+  bankName      String
+  bankCode      String
+  accountNumber String
+  accountName   String
+  isDefault     Boolean       @default(false)
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  seller        SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+}
+
+model SellerWallet {
+  sellerId        String        @unique @db.Uuid
+  balance         Float         @default(0)
+  pending_balance Float         @default(0)
+  updated_at      DateTime      @updatedAt
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  payouts         Payout[]
+  seller          SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+}
+
+model Transaction {
+  walletId    String       @db.Uuid
+  amount      Float
+  type        String
+  orderId     Int?
+  description String
+  created_at  DateTime     @default(now())
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wallet      SellerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Payout {
+  walletId        String       @db.Uuid
+  amount          Float
+  status          String
+  bank_account    Json
+  transaction_ref String?
+  requested_at    DateTime     @default(now())
+  completed_at    DateTime?
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wallet          SellerWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Story {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId   String    @db.Uuid
+  productId  Int?
+  expiresAt  DateTime
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  mediaId    String    @unique @db.Uuid
+  author     Profile   @relation("UserStories", fields: [authorId], references: [id], onDelete: Cascade)
+  media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  product    Products? @relation(fields: [productId], references: [id])
+}
+
+model Post {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId       String           @db.Uuid
+  caption        String?
+  content        String?
+  contentType    String?
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  visibility     VisibilityType?  @default(PUBLIC)
+  allowComments  Boolean          @default(true)
+  /// True when this Post was auto-created from a product (unified product post)
+  isProductPost  Boolean          @default(false)
+  /// The product this post was generated from (populated when isProductPost = true)
+  sourceProduct  Products?        @relation("ProductLinkedPost")
+  comments       Comment[]
+  notifications  Notification[]
+  author         Profile          @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  media          Media[]          @relation("PostMedia")
+  likes          PostLike[]
+  shares         Share[]          @relation("PostShares") // Matches Share model
+  taggedProducts ProductPostTag[]
+  hashtags       PostTags[]       @relation("PostHashtags")
+  savedBy        SavedPost[]      @relation("PostSavedBy")
+
+  @@index([authorId])
+}
+
+model SavedPost {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @db.Uuid
+  postId     String   @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user       Profile  @relation("UserSavedPosts", fields: [userId], references: [id], onDelete: Cascade)
+  post       Post     @relation("PostSavedBy", fields: [postId], references: [id], onDelete: Cascade)
+
+  // Safety: A user can't save the same post twice
+  @@unique([userId, postId])
+  // Index for fast retrieval of a user's collection
+  @@index([userId])
+}
+
+model Comment {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  text          String
+  authorId      String         @db.Uuid
+  productId     Int?
+  parentId      String?        @db.Uuid
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  postId        String?        @db.Uuid
+  author        Profile        @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Comment?       @relation("Replies", fields: [parentId], references: [id], onDelete: NoAction)
+  replies       Comment[]      @relation("Replies")
+  post          Post?          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product       Products?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  likes         CommentLike[]
+  notifications Notification[] @relation("NotificationToComment")
+}
+
+model Like {
+  id         Int      @id @default(autoincrement())
+  userId     String   @db.Uuid
+  productId  Int
+  created_at DateTime @default(now())
+  product    Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  profile    Profile  @relation("ProfileLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model CommentLike {
+  userId     String   @db.Uuid
+  commentId  String   @db.Uuid
+  created_at DateTime @default(now())
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user       Profile  @relation("UserCommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+}
+
+model PostLike {
+  userId     String   @db.Uuid
+  postId     String   @db.Uuid
+  created_at DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user       Profile  @relation("UserProfileLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model Follow {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  followerId     String   @db.Uuid
+  followingId    String   @db.Uuid
+  followingType  String   @default("USER") // "USER" or "SELLER"
+  created_at     DateTime @default(now())
+  
+  // Only the follower has a strict database-level relationship
+  follower       Profile  @relation("UserAsFollower", fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId, followingType])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Share {
+  id          Int      @id @default(autoincrement())
+  userId      String   @db.Uuid
+  productId   Int?
+  postId      String?  @db.Uuid
+  platform    String?  // e.g., 'whatsapp', 'instagram', 'internal'
+  shareUrl    String?
+  created_at  DateTime @default(now())
+
+  // Relations
+  product     Products? @relation("ProductShare", fields: [productId], references: [id], onDelete: Cascade)
+  post        Post?     @relation("PostShares", fields: [postId], references: [id], onDelete: Cascade)
+  profile     Profile   @relation("ProfileShares", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Remove the strict unique constraint if you want users to share multiple times
+  // or keep it if you only want to track unique platform shares per user
+  @@index([postId])
+  @@index([productId])
+}
+
+model Media {
+  url        String
+  type       MediaType
+  productId  Int?
+  created_at DateTime       @default(now()) @db.Timestamptz(6)
+  sellerId   String?        @db.Uuid
+  altText    String?
+  metadata   Json?
+  public_id  String?        @unique
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId   String         @db.Uuid
+  author     Profile        @relation("MediaAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  product    Products?      @relation(fields: [productId], references: [id])
+  seller     SellerProfile? @relation("MediaSeller", fields: [sellerId], references: [id])
+  postId     String?        @db.Uuid
+  isBgMusic  Boolean        @default(false)
+  post       Post?    @relation("PostMedia", fields: [postId], references: [id], onDelete: Cascade)
+  story      Story?
+
+  musicTitle     String?
+  musicArtist    String?
+  musicSource    String? // e.g., "Free Music Archive"
+  musicSourceUrl String?
+}
+
+model Category {
+  id              Int                 @id @default(autoincrement())
+  name            String              @unique
+  thumbnailCatUrl String?
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime            @updatedAt @db.Timestamptz(6)
+  slug            String              @unique
+  products        ProductCategories[] @relation("ProductCategory")
+}
+
+model Tag {
+  id         Int           @id @default(autoincrement())
+  name       String        @unique
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at DateTime      @updatedAt @db.Timestamptz(6)
+  products   ProductTags[] @relation("ProductTag")
+  posts      PostTags[]    @relation("PostHashtagTag")
+}
+
+model PostTags {
+  postId String @db.Uuid
+  tagId  Int
+  post   Post   @relation("PostHashtags", fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation("PostHashtagTag", fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model VerificationDocument {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sellerProfileId String             @db.Uuid
+  type            String
+  url             String
+  status          VerificationStatus @default(PENDING)
+  created_at      DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime           @updatedAt @db.Timestamptz(6)
+  sellerProfile   SellerProfile      @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id         Int              @id @default(autoincrement())
+  userId     String           @db.Uuid
+  message    String
+  type       NotificationType
+  read       Boolean          @default(false)
+  orderId    Int?
+  productId  Int?
+  created_at DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at DateTime         @updatedAt @db.Timestamptz(6)
+  actorId        String?          @db.Uuid
+  commentId      String?          @db.Uuid
+  postId         String?          @db.Uuid
+  conversationId String?          @db.Uuid
+  actor          Profile?         @relation("NotificationFromActor", fields: [actorId], references: [id])
+  comment        Comment?         @relation("NotificationToComment", fields: [commentId], references: [id])
+  conversation   Conversation?    @relation("NotificationToConversation", fields: [conversationId], references: [id])
+  order          Orders?          @relation("NotificationToOrder", fields: [orderId], references: [id])
+  post           Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product        Products?        @relation("NotificationToProduct", fields: [productId], references: [id])
+  profile        Profile          @relation("NotificationToProfile", fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model ProductCategories {
+  productId  Int
+  categoryId Int
+  category   Category @relation("ProductCategory", fields: [categoryId], references: [id], onDelete: Cascade)
+  product    Products @relation("ProductCategory", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+}
+
+model ProductTags {
+  productId Int
+  tagId     Int
+  product   Products @relation("ProductTag", fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation("ProductTag", fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
+
+model ProductRelation {
+  styledWithId Int
+  appearsInId  Int
+  appearsIn    Products @relation("AppearsIn", fields: [appearsInId], references: [id], onDelete: Cascade)
+  styledWith   Products @relation("StyledWith", fields: [styledWithId], references: [id], onDelete: Cascade)
+
+  @@id([styledWithId, appearsInId])
+}
+
+model ProductPostTag {
+  productId Int
+  postId    String   @db.Uuid
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product   Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([postId, productId])
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_type String // LOGIN_SUCCESS, LOGIN_FAILED, etc.
+  user_id    String   @db.Uuid
+  email      String?
+  ip_address String?
+  user_agent String?
+  success    Boolean
+  reason     String?
+  metadata   Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  user Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([email])
+  @@index([created_at])
+  @@index([event_type])
+}
+
+model FailedLoginAttempt {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String?
+  user_id         String?   @db.Uuid
+  ip_address      String?
+  user_agent      String?
+  attempt_count   Int       @default(1)
+  locked_until    DateTime?
+  last_attempt_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  // Relations
+
+  @@unique([email])
+  @@index([user_id])
+  @@index([ip_address])
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token      String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+}
+
+model PasswordResetToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token      String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+}
+
+model Session {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @db.Uuid
+  refreshToken String    @unique
+  ip           String?
+  userAgent    String?
+  device       String?
+  country      String?
+  expiresAt    DateTime
+  lastUsedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  user         Profile   @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+}
+
+// ==================== USER SETTINGS ====================
+model UserSettings {
+  user_id             String   @id @db.Uuid
+  email_notifications Boolean  @default(true)
+  push_notifications  Boolean  @default(true)
+  private_profile     Boolean  @default(false)
+  two_factor_enabled  Boolean  @default(false)
+  language            String   @default("en")
+  currency            String   @default("NGN")
+  theme               String   @default("system")
+  text_size           String   @default("medium")
+  auto_mute           Boolean  @default(true)
+  compact_feed        Boolean  @default(false)
+  show_captions       Boolean  @default(true)
+  show_like_counts    Boolean  @default(true)
+  show_near_me        Boolean  @default(true)
+  show_shop_today     Boolean  @default(true)
+  show_stories        Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  // Relations
+  user Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId  Int
+  authorId   String        @db.Uuid
+  orderId    Int?
+  rating     Int           // 1-5
+  title      String?
+  body       String?
+  verified   Boolean       @default(false)
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at DateTime      @updatedAt @db.Timestamptz(6)
+
+  product    Products      @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
+  author     Profile       @relation("UserReviews", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, authorId])
+  @@index([productId])
+  @@index([authorId])
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  CANCELED
+  PAID
+  SHIPPED
+  DELIVERED
+  RETURNED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum NotificationType {
+  ORDER
+  REVIEW
+  PRODUCT
+  GENERAL
+  NEW_COMMENT
+  COMMENT_LIKE
+  REPLY
+  PRODUCT_SHARE
+  NEW_FOLLOWER
+  NEW_POST
+  POST_LIKE
+}
+
+enum VisibilityType {
+  PUBLIC
+  PRIVATE
+  FOLLOWERS
+}

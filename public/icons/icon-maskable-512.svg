@@ -1,0 +1,20 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'>
+  <!-- Full bleed background — required for maskable -->
+  <rect width='512' height='512' fill='#F43F5E'/>
+  <!-- Content lives inside the safe zone: 80% = 40px margin each side (41–471) -->
+  <!-- Storefront icon centered in safe zone -->
+  <g transform='translate(256,256)'>
+    <!-- Store body -->
+    <rect x='-90' y='-30' width='180' height='110' rx='12' fill='white'/>
+    <!-- Awning/canopy -->
+    <path d='M-110,-30 Q-110,-90 -50,-90 L50,-90 Q110,-90 110,-30 Z' fill='white' opacity='0.9'/>
+    <!-- Door -->
+    <rect x='-22' y='30' width='44' height='50' rx='6' fill='#F43F5E'/>
+    <!-- Windows -->
+    <rect x='-75' y='-10' width='40' height='30' rx='5' fill='#F43F5E' opacity='0.7'/>
+    <rect x='35' y='-10' width='40' height='30' rx='5' fill='#F43F5E' opacity='0.7'/>
+    <!-- Sign bar -->
+    <rect x='-65' y='-72' width='130' height='28' rx='6' fill='#F43F5E'/>
+    <text x='0' y='-52' font-family='system-ui,sans-serif' font-weight='900' font-size='18' fill='white' text-anchor='middle' dominant-baseline='middle'>MarketX</text>
+  </g>
+</svg>

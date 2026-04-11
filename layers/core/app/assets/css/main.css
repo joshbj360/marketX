@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Brand CSS variable (RGB triplet for opacity compositing) ───────────── */
+:root {
+  --color-brand: 244 63 94; /* #F43F5E */
+}
+
+/* ── Global font application ────────────────────────────────────────────── */
+body {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+}
