@@ -13,7 +13,7 @@
           <div
             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand shadow-sm shadow-brand/20"
           >
-            <span class="text-xs font-black italic text-white">sX</span>
+            <span class="text-xs font-black italic text-white">MX</span>
           </div>
           <span class="text-sm font-bold text-gray-500 dark:text-neutral-400"
             >← Back to {{ $config.public.siteName || 'styleX' }}</span
@@ -106,7 +106,7 @@
           <div
             class="flex h-7 w-7 items-center justify-center rounded-lg bg-brand"
           >
-            <span class="text-[9px] font-black italic text-white">sX</span>
+            <span class="text-[9px] font-black italic text-white">MX</span>
           </div>
         </NuxtLink>
         <div class="min-w-0 flex-1">
@@ -115,7 +115,15 @@
       </header>
 
       <!-- Main content -->
-      <main class="flex-1 overflow-y-auto xl:pb-0" style="padding-bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 4rem))">
+      <main
+        class="flex-1 overflow-y-auto xl:pb-0"
+        style="
+          padding-bottom: max(
+            5rem,
+            calc(env(safe-area-inset-bottom, 0px) + 4rem)
+          );
+        "
+      >
         <slot />
       </main>
 
@@ -123,7 +131,10 @@
       <nav
         v-if="storeSlug"
         class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-gray-200 bg-white px-2 xl:hidden dark:border-neutral-800 dark:bg-neutral-900"
-        style="height: calc(4rem + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px)"
+        style="
+          height: calc(4rem + env(safe-area-inset-bottom, 0px));
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        "
       >
         <NuxtLink
           :to="`/seller/${storeSlug}/dashboard`"
@@ -171,7 +182,10 @@
       <nav
         v-else
         class="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-gray-200 bg-white px-2 xl:hidden dark:border-neutral-800 dark:bg-neutral-900"
-        style="height: calc(4rem + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px)"
+        style="
+          height: calc(4rem + env(safe-area-inset-bottom, 0px));
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        "
       >
         <NuxtLink
           to="/seller/dashboard"

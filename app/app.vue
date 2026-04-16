@@ -11,6 +11,9 @@
       :duration="4000"
       :max="4"
     />
+    <ClientOnly>
+      <UploadProgressBar />
+    </ClientOnly>
   </div>
 </template>
 

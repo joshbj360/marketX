@@ -15,6 +15,10 @@ export const useFollowStore = defineStore('follow', () => {
   // Cache for follow status (is this user following that user?)
   const followStatusCache = ref<Map<string, boolean>>(new Map())
 
+  // Keys (username or userId) that are currently being resolved by a batch check.
+  // FollowButton checks this to avoid firing redundant individual requests.
+  const pendingBatchKeys = ref<Set<string>>(new Set())
+
   // ==================== GETTERS ====================
 
   const getFollowers = (username: string) => {
@@ -56,10 +60,21 @@ export const useFollowStore = defineStore('follow', () => {
     followStatusCache.value.set(username, status)
   }
 
+  const markBatchPending = (keys: string[]) => {
+    keys.forEach((k) => pendingBatchKeys.value.add(k))
+  }
+
+  const clearBatchPending = (keys: string[]) => {
+    keys.forEach((k) => pendingBatchKeys.value.delete(k))
+  }
+
+  const isBatchPending = (key: string) => pendingBatchKeys.value.has(key)
+
   const clearCache = () => {
     followersCache.value.clear()
     followingCache.value.clear()
     followStatusCache.value.clear()
+    pendingBatchKeys.value.clear()
     error.value = null
   }
 
@@ -72,11 +87,13 @@ export const useFollowStore = defineStore('follow', () => {
     followersCache,
     followingCache,
     followStatusCache,
+    pendingBatchKeys,
 
     // Getters
     getFollowers,
     getFollowing,
     isFollowing,
+    isBatchPending,
 
     // Actions
     setLoading,
@@ -84,6 +101,8 @@ export const useFollowStore = defineStore('follow', () => {
     setFollowers,
     setFollowing,
     setFollowStatus,
+    markBatchPending,
+    clearBatchPending,
     clearCache,
   }
 })

@@ -30,10 +30,12 @@ function mapResourceType(cloudinaryType: string, mimeType: string): IMediaType {
 
 /**
  * Upload a single file directly to Cloudinary from the browser.
+ * Accepts an optional onProgress callback (0–100) for progress bars.
  * Returns the same ICloudinaryUploadResult shape the rest of the app expects.
  */
 export async function uploadToCloudinary(
   file: File,
+  onProgress?: (percent: number) => void,
 ): Promise<ICloudinaryUploadResult> {
   const config = useRuntimeConfig()
   const cloudName = config.public.cloudName
@@ -44,28 +46,49 @@ export async function uploadToCloudinary(
   }
 
   const resourceType = getCloudinaryResourceType(file)
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`
 
   const formData = new FormData()
   formData.append('file', file)
   formData.append('upload_preset', uploadPreset)
 
-  const res = await fetch(url, { method: 'POST', body: formData })
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(
-      err?.error?.message ?? `Cloudinary upload failed (${res.status})`,
-    )
-  }
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    })
 
-  const data = await res.json()
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText)
+          resolve({
+            url: data.secure_url,
+            public_id: data.public_id,
+            type: mapResourceType(data.resource_type, file.type),
+          })
+        } catch {
+          reject(new Error('Failed to parse Cloudinary response'))
+        }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText)
+          reject(new Error(err?.error?.message ?? `Cloudinary upload failed (${xhr.status})`))
+        } catch {
+          reject(new Error(`Cloudinary upload failed (${xhr.status})`))
+        }
+      }
+    })
 
-  return {
-    url: data.secure_url,
-    public_id: data.public_id,
-    type: mapResourceType(data.resource_type, file.type),
-  }
+    xhr.addEventListener('error', () => reject(new Error('Network error during upload')))
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
+
+    xhr.open('POST', uploadUrl)
+    xhr.send(formData)
+  })
 }
 
 export class MediaApiClient extends BaseApiClient {

@@ -63,12 +63,12 @@
               class="h-full w-full object-cover"
               loading="lazy"
             />
-            <video
+            <img
               v-else-if="firstMedia(post)?.type === 'VIDEO'"
-              :src="firstMedia(post)!.url"
+              :src="videoThumb(firstMedia(post)!.url)"
+              :alt="post.caption || 'Post'"
               class="h-full w-full object-cover"
-              muted
-              preload="none"
+              loading="lazy"
             />
             <div
               v-else
@@ -267,6 +267,7 @@ import { usePost } from '~~/layers/social/app/composables/usePost'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
 import { useProductApi } from '~~/layers/commerce/app/services/product.api'
 import { useCurrency } from '~~/layers/core/app/composables/useCurrency'
+import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 
 const props = defineProps<{ username: string }>()

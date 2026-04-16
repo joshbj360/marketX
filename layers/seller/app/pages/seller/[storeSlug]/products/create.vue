@@ -66,13 +66,19 @@
               <img :src="img.preview" class="h-full w-full object-cover" />
               <div
                 v-if="img.uploading"
-                class="absolute inset-0 flex items-center justify-center bg-black/50"
+                class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55"
               >
-                <Icon
-                  name="mdi:loading"
-                  size="20"
-                  class="animate-spin text-white"
-                />
+                <svg width="36" height="36" viewBox="0 0 36 36" class="-rotate-90">
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3" />
+                  <circle
+                    cx="18" cy="18" r="14" fill="none" stroke="#F43F5E" stroke-width="3"
+                    stroke-linecap="round"
+                    :stroke-dasharray="`${2 * Math.PI * 14}`"
+                    :stroke-dashoffset="`${2 * Math.PI * 14 * (1 - img.progress / 100)}`"
+                    style="transition: stroke-dashoffset 0.15s ease"
+                  />
+                </svg>
+                <span class="text-[11px] font-bold text-white">{{ img.progress }}%</span>
               </div>
               <div
                 v-if="i === 0"
@@ -1255,6 +1261,7 @@ interface MediaItem {
   preview: string
   file: File
   uploading: boolean
+  progress: number
   result: { url: string; public_id: string; type: string } | null
 }
 
@@ -1285,13 +1292,16 @@ const onImagesSelected = async (e: Event) => {
       preview: URL.createObjectURL(file),
       file,
       uploading: true,
+      progress: 0,
       result: null,
     }
     mediaItems.value.push(item)
     const idx = mediaItems.value.length - 1
 
     try {
-      const res = await uploadMedia({ file })
+      const res = await uploadMedia({ file }, (pct) => {
+        if (mediaItems.value[idx]) mediaItems.value[idx].progress = pct
+      })
       if (mediaItems.value[idx]) {
         mediaItems.value[idx].result = res
         mediaItems.value[idx].uploading = false

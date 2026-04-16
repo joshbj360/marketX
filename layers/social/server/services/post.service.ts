@@ -95,7 +95,7 @@ export const contentService = {
     if (post.authorId !== userId)
       throw new UserError('FORBIDDEN', 'You can only edit your own posts', 403)
 
-    const updated = await postRepository.updatePost(postId, validated)
+    const updated = await postRepository.updatePost(postId, validated, userId)
     auditQueue.enqueue({
       userId,
       action: 'POST_UPDATED',

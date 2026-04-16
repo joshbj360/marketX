@@ -130,11 +130,19 @@
                   <!-- Upload progress -->
                   <div
                     v-if="item.uploading"
-                    class="absolute inset-0 flex items-center justify-center bg-black/50"
+                    class="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55"
                   >
-                    <div
-                      class="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent"
-                    />
+                    <svg width="36" height="36" viewBox="0 0 36 36" class="-rotate-90">
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2.5" />
+                      <circle
+                        cx="18" cy="18" r="14" fill="none" stroke="#F43F5E" stroke-width="2.5"
+                        stroke-linecap="round"
+                        :stroke-dasharray="`${2 * Math.PI * 14}`"
+                        :stroke-dashoffset="`${2 * Math.PI * 14 * (1 - (item.progress ?? 0) / 100)}`"
+                        style="transition: stroke-dashoffset 0.15s ease"
+                      />
+                    </svg>
+                    <span class="text-[10px] font-bold text-white">{{ item.progress ?? 0 }}%</span>
                   </div>
                   <!-- Upload error + retry -->
                   <div
@@ -415,6 +423,7 @@ interface MediaItem {
   type: 'image' | 'video'
   preview: string
   uploading?: boolean
+  progress?: number
   uploaded?: ICloudinaryUploadResult
   uploadError?: boolean
 }
@@ -497,16 +506,22 @@ const addFiles = (files: File[]) => {
         : null
     if (!type) continue
 
-    const item: MediaItem = { file, type, preview: URL.createObjectURL(file), uploading: true }
-    mediaFiles.value.push(item)
+    mediaFiles.value.push({ file, type, preview: URL.createObjectURL(file), uploading: true, progress: 0 })
+    const idx = mediaFiles.value.length - 1
 
     // Eager upload — start immediately so it's done by the time user hits Share
-    uploadMedia(file).then((result) => {
-      item.uploaded = result
-      item.uploading = false
+    uploadMedia(file, (pct) => {
+      if (mediaFiles.value[idx]) mediaFiles.value[idx].progress = pct
+    }).then((result) => {
+      if (mediaFiles.value[idx]) {
+        mediaFiles.value[idx].uploaded = result
+        mediaFiles.value[idx].uploading = false
+      }
     }).catch(() => {
-      item.uploadError = true
-      item.uploading = false
+      if (mediaFiles.value[idx]) {
+        mediaFiles.value[idx].uploadError = true
+        mediaFiles.value[idx].uploading = false
+      }
     })
   }
 }

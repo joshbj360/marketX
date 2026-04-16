@@ -103,7 +103,16 @@
                 :key="'existing-' + img.id"
                 class="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-neutral-700 dark:bg-neutral-900"
               >
-                <img :src="img.url" class="h-full w-full object-cover" />
+                <img
+                  :src="img.type === 'VIDEO' ? videoThumb(img.url) : img.url"
+                  class="h-full w-full object-cover"
+                />
+                <Icon
+                  v-if="img.type === 'VIDEO'"
+                  name="mdi:play-circle"
+                  size="18"
+                  class="pointer-events-none absolute right-1.5 top-1.5 text-white drop-shadow-lg"
+                />
                 <div
                   v-if="i === 0 && newMediaItems.length === 0"
                   class="absolute left-1 top-1 rounded bg-brand px-1.5 py-0.5 text-[10px] font-medium text-white"
@@ -128,13 +137,19 @@
                 <img :src="img.preview" class="h-full w-full object-cover" />
                 <div
                   v-if="img.uploading"
-                  class="absolute inset-0 flex items-center justify-center bg-black/50"
+                  class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55"
                 >
-                  <Icon
-                    name="mdi:loading"
-                    size="20"
-                    class="animate-spin text-white"
-                  />
+                  <svg width="36" height="36" viewBox="0 0 36 36" class="-rotate-90">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3" />
+                    <circle
+                      cx="18" cy="18" r="14" fill="none" stroke="#F43F5E" stroke-width="3"
+                      stroke-linecap="round"
+                      :stroke-dasharray="`${2 * Math.PI * 14}`"
+                      :stroke-dashoffset="`${2 * Math.PI * 14 * (1 - img.progress / 100)}`"
+                      style="transition: stroke-dashoffset 0.15s ease"
+                    />
+                  </svg>
+                  <span class="text-[11px] font-bold text-white">{{ img.progress }}%</span>
                 </div>
                 <div
                   v-if="visibleExistingMedia.length === 0 && i === 0"
@@ -818,6 +833,7 @@ import { useProduct } from '~~/layers/commerce/app/composables/useProduct'
 import { useProductApi } from '~~/layers/commerce/app/services/product.api'
 import { useMediaUpload } from '~~/layers/core/app/composables/useMediaUpload'
 import { useAiApi } from '~~/layers/core/app/services/ai.api'
+import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 
 import ProductPromotePanel from '~~/layers/seller/app/components/ProductPromotePanel.vue'
 import HtmlDescriptionEditor from '~~/layers/seller/app/components/HtmlDescriptionEditor.vue'
@@ -857,6 +873,7 @@ interface NewMediaItem {
   preview: string
   file: File
   uploading: boolean
+  progress: number
   result: { url: string; public_id: string; type: string } | null
 }
 
@@ -905,13 +922,16 @@ const onImagesSelected = async (e: Event) => {
       preview: URL.createObjectURL(file),
       file,
       uploading: true,
+      progress: 0,
       result: null,
     }
     newMediaItems.value.push(item)
     const idx = newMediaItems.value.length - 1
 
     try {
-      const res = await uploadMedia({ file })
+      const res = await uploadMedia({ file }, (pct) => {
+        if (newMediaItems.value[idx]) newMediaItems.value[idx].progress = pct
+      })
       if (newMediaItems.value[idx]) {
         newMediaItems.value[idx].result = res
         newMediaItems.value[idx].uploading = false

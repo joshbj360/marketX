@@ -6,7 +6,7 @@
     <div class="relative aspect-square bg-gray-100 dark:bg-neutral-700">
       <img
         v-if="product.media?.[0]?.url"
-        :src="imgThumb(product.media[0].url)"
+        :src="product.media[0].type === 'VIDEO' ? videoThumb(product.media[0].url) : imgThumb(product.media[0].url)"
         :alt="product.title"
         loading="lazy"
         class="h-full w-full object-cover"
@@ -18,6 +18,12 @@
           class="text-gray-300 dark:text-neutral-600"
         />
       </div>
+      <Icon
+        v-if="product.media?.[0]?.type === 'VIDEO'"
+        name="mdi:play-circle"
+        size="18"
+        class="pointer-events-none absolute right-2 top-2 text-white drop-shadow-lg"
+      />
 
       <!-- Status badge -->
       <span
@@ -94,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { imgThumb } from '~~/layers/core/app/utils/cloudinary'
+import { imgThumb, videoThumb } from '~~/layers/core/app/utils/cloudinary'
 const { formatPrice } = useCurrency()
 
 defineProps<{

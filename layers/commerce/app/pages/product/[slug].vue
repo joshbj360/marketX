@@ -46,7 +46,15 @@
           <div
             class="relative aspect-square overflow-hidden rounded-2xl bg-gray-50 dark:bg-neutral-800"
           >
+            <video
+              v-if="mediaItems[currentIndex]?.type === 'VIDEO'"
+              :src="mediaItems[currentIndex].url"
+              class="h-full w-full object-contain"
+              controls
+              preload="metadata"
+            />
             <img
+              v-else
               :src="mediaItems[currentIndex]?.url"
               :alt="product.title"
               class="h-full w-full object-contain"
@@ -93,7 +101,7 @@
               v-for="(item, i) in mediaItems"
               :key="i"
               @click="currentIndex = i"
-              class="h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all"
+              class="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all"
               :class="
                 i === currentIndex
                   ? 'border-brand'
@@ -101,9 +109,15 @@
               "
             >
               <img
-                :src="item.url"
+                :src="item.type === 'VIDEO' ? videoThumb(item.url) : item.url"
                 :alt="`${product.title} ${i + 1}`"
                 class="h-full w-full object-cover"
+              />
+              <Icon
+                v-if="item.type === 'VIDEO'"
+                name="mdi:play-circle"
+                size="14"
+                class="pointer-events-none absolute inset-0 m-auto text-white drop-shadow"
               />
             </button>
           </div>
@@ -312,11 +326,10 @@
             >
               Description
             </p>
-            <p
-              class="text-sm leading-relaxed text-gray-700 dark:text-neutral-300"
-            >
-              {{ product.description }}
-            </p>
+            <div
+              v-html="product.description"
+              class="product-desc text-sm leading-relaxed text-gray-700 dark:text-neutral-300"
+            />
           </div>
         </div>
       </div>
@@ -336,6 +349,7 @@ import ProductReviews from '~~/layers/commerce/app/components/ProductReviews.vue
 import { useCart } from '~~/layers/commerce/app/composables/useCart'
 import { useAffiliate } from '~~/layers/commerce/app/composables/useAffiliate'
 import { formatProductPrice } from '~~/shared/utils/currency'
+import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 import { notify } from '@kyvg/vue3-notification'
 
 const route = useRoute()
@@ -482,3 +496,16 @@ useHead(
   })),
 )
 </script>
+
+<style scoped>
+.product-desc :deep(p) { margin-bottom: 0.6em; }
+.product-desc :deep(p:last-child) { margin-bottom: 0; }
+.product-desc :deep(h1),.product-desc :deep(h2),.product-desc :deep(h3) { font-weight: 700; margin: 0.8em 0 0.3em; }
+.product-desc :deep(ul),.product-desc :deep(ol) { padding-left: 1.25rem; margin-bottom: 0.6em; }
+.product-desc :deep(ul) { list-style-type: disc; }
+.product-desc :deep(ol) { list-style-type: decimal; }
+.product-desc :deep(li) { margin-bottom: 0.2em; }
+.product-desc :deep(strong) { font-weight: 700; }
+.product-desc :deep(em) { font-style: italic; }
+.product-desc :deep(a) { color: #f02c56; text-decoration: underline; }
+</style>

@@ -40,9 +40,15 @@ const label = computed(() => {
   return following.value ? t('post.following') : t('post.follow')
 })
 
-// Hydrate follow status on mount if not already cached
+// Hydrate follow status on mount — skip if a batch check is already in flight
+// or the status is already cached (avoids N individual calls on feed load)
 onMounted(() => {
-  if (profileStore.userId && !followStore.followStatusCache.has(props.username)) {
+  if (!profileStore.userId) return
+  const cached = followStore.followStatusCache.has(props.username)
+  const batchPending =
+    followStore.isBatchPending(props.username) ||
+    followStore.isBatchPending(props.userId)
+  if (!cached && !batchPending) {
     checkIfFollowing(props.username)
   }
 })

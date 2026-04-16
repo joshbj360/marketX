@@ -121,6 +121,7 @@
               :username="username"
             />
             <StoresTab v-else-if="activeTab === 'stores' && isOwnProfile" />
+            <MediaTab v-else-if="activeTab === 'media' && isOwnProfile" />
             <AboutTab v-else-if="activeTab === 'about'" :profile="profile" />
           </div>
         </div>
@@ -174,6 +175,7 @@ import AboutTab from '../../components/profile/tabs/AboutTab.vue'
 import EditProfileModal from '../../components/profile/modals/EditProfileModal.vue'
 import FollowListModal from '../../components/profile/modals/FollowListModal.vue'
 import StoresTab from '../../components/profile/tabs/StoresTab.vue'
+import MediaTab from '../../components/profile/tabs/MediaTab.vue'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -225,6 +227,7 @@ const availableTabs = computed(() => {
       { id: 'orders', label: 'Orders', icon: 'mdi:package-variant', badge: 0 },
       { id: 'wallet', label: 'Wallet', icon: 'mdi:wallet-outline' },
       { id: 'affiliate', label: 'Affiliate', icon: 'mdi:cash-multiple' },
+      { id: 'media', label: 'Media', icon: 'mdi:image-multiple-outline' },
       { id: 'about', label: 'About', icon: 'mdi:information-outline' },
     ]
     if (sellerStore.hasSellers) {

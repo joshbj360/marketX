@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: error.message,
       })
     }
+    console.error('[PATCH /api/posts/:id]', error)
     throw createError({ statusCode: 500, statusMessage: 'Server error' })
   }
 })

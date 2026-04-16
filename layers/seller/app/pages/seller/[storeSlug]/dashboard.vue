@@ -22,9 +22,12 @@
         >
           <div class="text-3xl">🎉</div>
           <div class="min-w-0 flex-1">
-            <p class="font-bold text-gray-900 dark:text-white">Your store is live!</p>
+            <p class="font-bold text-gray-900 dark:text-white">
+              Your store is live!
+            </p>
             <p class="mt-0.5 text-sm text-gray-600 dark:text-neutral-400">
-              Your first product is published. Share your store link to start getting orders.
+              Your first product is published. Share your store link to start
+              getting orders.
             </p>
             <NuxtLink
               :to="`/sellers/profile/${storeSlug}`"
@@ -33,7 +36,10 @@
               View your store <Icon name="mdi:arrow-right" size="14" />
             </NuxtLink>
           </div>
-          <button class="shrink-0 text-gray-400 hover:text-gray-600 dark:text-neutral-500" @click="showWelcome = false">
+          <button
+            class="shrink-0 text-gray-400 hover:text-gray-600 dark:text-neutral-500"
+            @click="showWelcome = false"
+          >
             <Icon name="mdi:close" size="18" />
           </button>
         </div>
@@ -95,12 +101,21 @@
         <div class="mb-3 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <Icon name="mdi:star-circle-outline" size="20" class="text-brand" />
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">Store completeness — {{ completeness }}%</p>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">
+              Store completeness — {{ completeness }}%
+            </p>
           </div>
-          <span class="text-xs text-gray-500 dark:text-neutral-400">{{ missingItems.length }} item{{ missingItems.length !== 1 ? 's' : '' }} missing</span>
+          <span class="text-xs text-gray-500 dark:text-neutral-400"
+            >{{ missingItems.length }} item{{
+              missingItems.length !== 1 ? 's' : ''
+            }}
+            missing</span
+          >
         </div>
         <!-- Bar -->
-        <div class="mb-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-neutral-700">
+        <div
+          class="mb-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-neutral-700"
+        >
           <div
             class="h-full rounded-full bg-gradient-to-r from-brand to-purple-600 transition-all duration-500"
             :style="{ width: `${completeness}%` }"
@@ -112,9 +127,16 @@
             v-for="item in completenessItems"
             :key="item.label"
             class="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-            :class="item.done ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-neutral-700 dark:text-neutral-400'"
+            :class="
+              item.done
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-gray-100 text-gray-500 dark:bg-neutral-700 dark:text-neutral-400'
+            "
           >
-            <Icon :name="item.done ? 'mdi:check-circle' : 'mdi:circle-outline'" size="12" />
+            <Icon
+              :name="item.done ? 'mdi:check-circle' : 'mdi:circle-outline'"
+              size="12"
+            />
             {{ item.label }}
           </span>
         </div>
@@ -307,7 +329,11 @@
             <div class="relative aspect-square bg-gray-100 dark:bg-neutral-800">
               <img
                 v-if="product.media?.[0]?.url"
-                :src="product.media[0].url"
+                :src="
+                  product.media[0].type === 'VIDEO'
+                    ? videoThumb(product.media[0].url)
+                    : product.media[0].url
+                "
                 :alt="product.title"
                 class="h-full w-full object-cover"
               />
@@ -321,6 +347,12 @@
                   class="text-gray-300 dark:text-neutral-600"
                 />
               </div>
+              <Icon
+                v-if="product.media?.[0]?.type === 'VIDEO'"
+                name="mdi:play-circle"
+                size="18"
+                class="pointer-events-none absolute right-1.5 top-1.5 text-white drop-shadow-lg"
+              />
               <span
                 :class="[
                   'absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold',
@@ -357,6 +389,7 @@ import { useSellerApi } from '~~/layers/seller/app/services/seller.services'
 import { useProduct } from '~~/layers/commerce/app/composables/useProduct'
 import { useOrderApi } from '~~/layers/commerce/app/services/order.api'
 import { useWalletApi } from '~~/layers/commerce/app/services/wallet.api'
+import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 
 definePageMeta({ middleware: 'auth', layout: 'store-layout' })
 
@@ -400,7 +433,9 @@ const completeness = computed(() => {
   return Math.round((done / completenessItems.value.length) * 100)
 })
 
-const missingItems = computed(() => completenessItems.value.filter((i) => !i.done))
+const missingItems = computed(() =>
+  completenessItems.value.filter((i) => !i.done),
+)
 const recentProducts = ref<Record<string, unknown>[]>([])
 const productCount = ref(0)
 const orderCount = ref(0)
@@ -510,9 +545,16 @@ watch(storeSlug, (slug) => {
 })
 </script>
 
-
 <style scoped>
-.welcome-fade-enter-active { transition: all 0.4s ease; }
-.welcome-fade-leave-active { transition: all 0.3s ease; }
-.welcome-fade-enter-from, .welcome-fade-leave-to { opacity: 0; transform: translateY(-8px); }
+.welcome-fade-enter-active {
+  transition: all 0.4s ease;
+}
+.welcome-fade-leave-active {
+  transition: all 0.3s ease;
+}
+.welcome-fade-enter-from,
+.welcome-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
 </style>

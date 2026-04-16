@@ -48,12 +48,12 @@
             class="h-full w-full object-cover"
             loading="lazy"
           />
-          <video
+          <img
             v-else-if="firstMedia(post)?.type === 'VIDEO'"
-            :src="firstMedia(post)!.url"
+            :src="videoThumb(firstMedia(post)!.url)"
+            :alt="post.caption || 'Post'"
             class="h-full w-full object-cover"
-            muted
-            preload="none"
+            loading="lazy"
           />
           <!-- Text-only tile -->
           <div
@@ -85,6 +85,17 @@
               }}</span>
             </div>
           </div>
+
+          <!-- Edit button (own profile only) — always visible on mobile, hover-only on desktop -->
+          <button
+            v-if="isOwnProfile"
+            type="button"
+            @click.stop="openEdit(post)"
+            class="absolute bottom-1.5 left-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition-opacity hover:bg-black/80 md:opacity-0 md:group-hover:opacity-100"
+            title="Edit post"
+          >
+            <Icon name="mdi:pencil" size="12" />
+          </button>
 
           <!-- Indicators -->
           <div
@@ -124,6 +135,14 @@
       :post="selectedPost"
       @close="selectedPost = null"
     />
+
+    <!-- Edit post modal -->
+    <PostEditModal
+      v-if="editingPost"
+      :post="editingPost"
+      @close="editingPost = null"
+      @updated="onPostUpdated"
+    />
   </div>
 </template>
 
@@ -132,6 +151,8 @@ import { ref, computed, onMounted } from 'vue'
 import { usePostStore } from '~~/layers/social/app/store/post.store'
 import { usePost } from '~~/layers/social/app/composables/usePost'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
+import PostEditModal from '~~/layers/social/app/components/modals/PostEditModal.vue'
+import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 
 const props = defineProps<{
@@ -143,6 +164,7 @@ const postStore = usePostStore()
 const { fetchUserPosts, isLoading, normalizePost } = usePost()
 
 const selectedPost = ref<IFeedItem | null>(null)
+const editingPost = ref<IFeedItem | null>(null)
 const hasMore = ref(false)
 const offset = ref(0)
 const LIMIT = 9
@@ -177,6 +199,15 @@ const firstMedia = (post: any) => {
 // Convert IPost → IFeedItem shape before opening PostDetailModal
 const openPost = (post: any) => {
   selectedPost.value = normalizePost(post)
+}
+
+const openEdit = (post: any) => {
+  editingPost.value = normalizePost(post)
+}
+
+const onPostUpdated = () => {
+  editingPost.value = null
+  // Store is already updated by usePost.updatePost — grid re-renders reactively
 }
 
 const formatNum = (n: number) =>

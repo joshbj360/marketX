@@ -506,12 +506,12 @@
                   class="h-full w-full object-cover"
                   loading="lazy"
                 />
-                <video
+                <img
                   v-else-if="firstPostMedia(post)?.type === 'VIDEO'"
-                  :src="imgThumb(firstPostMedia(post)!.url)"
+                  :src="videoThumb(firstPostMedia(post)!.url)"
+                  :alt="post.caption || 'Post'"
                   class="h-full w-full object-cover"
-                  muted
-                  preload="none"
+                  loading="lazy"
                 />
                 <div
                   v-else

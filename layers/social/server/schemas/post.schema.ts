@@ -54,6 +54,9 @@ export const updatePostSchema = z.object({
       'ENTERTAINMENT',
     ])
     .optional(),
+  visibility: z.enum(['PUBLIC', 'FOLLOWERS', 'PRIVATE']).optional(),
+  mediaToAdd: z.array(mediaItemSchema).max(10).optional(),
+  mediaToRemove: z.array(z.string()).optional(), // array of PostMedia IDs
 })
 
 // ==================== COMMENTS ====================

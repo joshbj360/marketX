@@ -211,6 +211,11 @@ export const useFollow = () => {
     type: 'USER' | 'SELLER' = 'USER',
     idToUsername?: Record<string, string>, // optional map so we can also cache by username
   ) => {
+    // Pre-mark all keys as pending so mounted FollowButtons skip individual calls
+    const allKeys = [...targetIds]
+    if (idToUsername) allKeys.push(...Object.values(idToUsername))
+    followStore.markBatchPending(allKeys)
+
     try {
       const result = await followApi.checkFollowingBatch(targetIds, type)
 
@@ -225,6 +230,8 @@ export const useFollow = () => {
     } catch (e: any) {
       console.error('Failed to batch check following:', e)
       return {}
+    } finally {
+      followStore.clearBatchPending(allKeys)
     }
   }
 

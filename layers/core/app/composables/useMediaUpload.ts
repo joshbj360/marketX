@@ -1,7 +1,8 @@
 /**
  * useMediaUpload
  * Shared composable for uploading files.
- * Includes client-side image compression before upload.
+ * Includes client-side image compression before upload, and XHR-based
+ * progress tracking (per-upload and globally shared across all uploads).
  */
 
 import { uploadToCloudinary } from '../services/media.api'
@@ -37,7 +38,6 @@ export async function compressImage(
       canvas.toBlob(
         (blob) => {
           if (!blob) return reject(new Error('Canvas toBlob failed'))
-          // Keep original filename, change extension to .webp
           const name = file.name.replace(/\.[^.]+$/, '.webp')
           resolve(new File([blob], name, { type: 'image/webp' }))
         },
@@ -48,38 +48,78 @@ export async function compressImage(
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl)
-      resolve(file) // fallback: upload original
+      resolve(file)
     }
 
     img.src = objectUrl
   })
 }
 
+// ── Global upload state (module-level singleton) ──────────────────────────────
+// Shared across every useMediaUpload() call in the app so any component
+// can render a global progress indicator.
+
+let _nextId = 0
+const _uploads = ref<Map<number, number>>(new Map()) // id → progress 0-100
+
+export const useUploadProgress = () => {
+  const active = computed(() => _uploads.value.size > 0)
+
+  const progress = computed(() => {
+    const values = [..._uploads.value.values()]
+    if (!values.length) return 0
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+  })
+
+  return { active, progress }
+}
+
+// ── Per-instance composable ───────────────────────────────────────────────────
+
 export const useMediaUpload = () => {
   const isUploading = ref(false)
   const uploadError = ref<string | null>(null)
+  const progress = ref(0) // 0-100 for current upload
 
-  /**
-   * Compress (images only) then upload directly to Cloudinary from the browser.
-   * Accepts either a raw File or the legacy { file: File } shape.
-   */
-  const uploadMedia = async (input: File | { file?: File }): Promise<ICloudinaryUploadResult> => {
+  const uploadMedia = async (
+    input: File | { file?: File },
+    onProgress?: (pct: number) => void,
+  ): Promise<ICloudinaryUploadResult> => {
     const file = input instanceof File ? input : input.file
     if (!file) throw new Error('No file provided')
+
     isUploading.value = true
     uploadError.value = null
+    progress.value = 0
+
+    const id = _nextId++
+    _uploads.value.set(id, 0)
 
     try {
       const toUpload = await compressImage(file)
-      return await uploadToCloudinary(toUpload)
+
+      const result = await uploadToCloudinary(toUpload, (pct) => {
+        progress.value = pct
+        _uploads.value.set(id, pct)
+        onProgress?.(pct)
+      })
+
+      progress.value = 100
+      _uploads.value.set(id, 100)
+
+      return result
     } catch (e: unknown) {
       const error = e as Error & { data?: { statusMessage?: string } }
-      console.error('Upload failed:', error)
       const message =
         error?.data?.statusMessage || error?.message || 'Failed to upload media'
       uploadError.value = message
       throw new Error(message)
     } finally {
+      // Small delay so the bar briefly shows 100% before disappearing
+      setTimeout(() => {
+        _uploads.value.delete(id)
+        isUploading.value = _uploads.value.size > 0
+      }, 400)
       isUploading.value = false
     }
   }
@@ -87,11 +127,13 @@ export const useMediaUpload = () => {
   const resetUpload = () => {
     isUploading.value = false
     uploadError.value = null
+    progress.value = 0
   }
 
   return {
     isUploading: computed(() => isUploading.value),
     uploadError: computed(() => uploadError.value),
+    progress: computed(() => progress.value),
     uploadMedia,
     resetUpload,
   }

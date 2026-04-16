@@ -145,11 +145,35 @@ export const postRepository = {
     })
   },
 
-  async updatePost(postId: string, data: any) {
+  async updatePost(postId: string, data: any, authorId: string) {
+    const { mediaToAdd, mediaToRemove, ...coreData } = data
+
+    // Delete removed media records first
+    if (mediaToRemove?.length) {
+      await prisma.media.deleteMany({
+        where: { id: { in: mediaToRemove }, postId },
+      })
+    }
+
     return await prisma.post.update({
       where: { id: postId },
-      data,
-      include: { author: { select: authorSelect } },
+      data: {
+        ...coreData,
+        ...(mediaToAdd?.length
+          ? {
+              media: {
+                create: mediaToAdd.map((m: any) => ({
+                  url: m.url,
+                  public_id: m.public_id,
+                  type: m.type,
+                  authorId,
+                  isBgMusic: false,
+                })),
+              },
+            }
+          : {}),
+      },
+      include: postInclude,
     })
   },
 
