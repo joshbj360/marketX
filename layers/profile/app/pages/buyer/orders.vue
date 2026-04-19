@@ -158,7 +158,7 @@
       </div>
 
       <!-- Loading -->
-      <div v-if="isLoading && !filteredOrders.length" class="space-y-4">
+      <div v-if="showInitialOrdersLoader" class="space-y-4">
         <div
           v-for="i in 3"
           :key="i"
@@ -324,6 +324,7 @@ import RightSideNavBuyerOrders from '~~/layers/core/app/layouts/children/RightSi
 import { useOrder } from '~~/layers/commerce/app/composables/useOrder'
 import { useOrderApi } from '~~/layers/commerce/app/services/order.api'
 import { useSellerManagement } from '~~/layers/seller/app/composables/useSellerManagement'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import { notify } from '@kyvg/vue3-notification'
 
 definePageMeta({ middleware: 'auth' })
@@ -331,7 +332,7 @@ const { setOrdersPage } = useSeo()
 setOrdersPage()
 
 const route = useRoute()
-const { isLoading } = useOrder()
+const { orders, fetchMyOrders, hasFetchedOnce } = useOrder()
 const orderApi = useOrderApi()
 const { sellers, hasSellers, loadUserSellers } = useSellerManagement()
 
@@ -394,7 +395,7 @@ const confirmReceipt = async (orderId: number) => {
   } catch (e: any) {
     notify({
       type: 'error',
-      text: e?.data?.statusMessage || e?.message || 'Failed to confirm receipt',
+      text: extractErrorMessage(e, 'Failed to confirm receipt'),
     })
   } finally {
     confirmingIds.value.delete(orderId)
@@ -402,9 +403,11 @@ const confirmReceipt = async (orderId: number) => {
   }
 }
 
-const orders = ref<any[]>([])
 const activeStatus = ref('ALL')
 const paymentSuccess = ref(route.query.payment === 'success')
+const showInitialOrdersLoader = computed(
+  () => !hasFetchedOnce.value && !orders.value.length,
+)
 
 // Verify payment if redirected from Paystack or capture PayPal
 onMounted(async () => {
@@ -449,10 +452,12 @@ onMounted(async () => {
 
 const loadOrders = async () => {
   try {
-    const res: any = await orderApi.getOrders({ limit: 50 })
-    orders.value = res?.data?.orders || []
+    await fetchMyOrders(50)
   } catch (e: any) {
-    notify({ type: 'error', text: e.message || 'Failed to load orders' })
+    notify({
+      type: 'error',
+      text: extractErrorMessage(e, 'Failed to load orders'),
+    })
   }
 }
 

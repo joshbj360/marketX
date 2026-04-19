@@ -15,8 +15,8 @@ export function cloudinaryUrl(
   opts: {
     width?: number
     height?: number
-    crop?: 'fill' | 'fit' | 'scale' | 'thumb' | 'pad'
-    quality?: 'auto' | 'auto:good' | 'auto:eco' | number
+    crop?: 'fill' | 'fit' | 'scale' | 'thumb' | 'pad' | 'limit'
+    quality?: 'auto' | 'auto:good' | 'auto:eco' | 'auto:low' | number
     format?: 'auto' | 'webp' | 'avif'
   } = {},
 ): string {
@@ -73,6 +73,29 @@ export const imgAvatar = (url: string | null | undefined) =>
 /** Preset: full-width modal/detail view */
 export const imgDetail = (url: string | null | undefined) =>
   cloudinaryUrl(url, { width: 1080, quality: 'auto' })
+
+/**
+ * LQIP — Low Quality Image Placeholder.
+ * 20 px wide, auto-compressed. Loads in < 100 ms even on 3G.
+ * Use as an inline CSS background that shows instantly while the real image fetches.
+ */
+export const imgLqip = (url: string | null | undefined) =>
+  cloudinaryUrl(url, { width: 20, quality: 'auto:eco', format: 'auto' })
+
+/**
+ * Feed video URL — serves WebM to Chrome/Android (~30 % smaller than MP4),
+ * capped at 720 p. Pass eco=true on slow networks for a lower bitrate encode.
+ */
+export const videoFeedUrl = (
+  url: string | null | undefined,
+  eco = false,
+): string =>
+  cloudinaryUrl(url, {
+    width: 720,
+    crop: 'limit',
+    quality: eco ? 'auto:eco' : 'auto:good',
+    format: 'auto',
+  })
 
 /**
  * Derive a static poster/thumbnail from a Cloudinary video URL.

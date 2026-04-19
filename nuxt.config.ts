@@ -49,6 +49,7 @@ export default defineNuxtConfig({
     './layers/commerce',
     './layers/social',
     './layers/map',
+    './layers/square',
   ],
 
   modules: [

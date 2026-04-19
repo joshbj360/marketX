@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
       oauthError instanceof Error
         ? oauthError.message
         : 'OAuth authentication failed'
-    console.error('[OAuth callback] Error:', oauthError)
+    logger.error('[OAuth callback] Error:', oauthError)
     return sendRedirect(
       event,
       `${appUrl}/user-login?oauth_error=${encodeURIComponent(message)}`,

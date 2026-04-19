@@ -28,9 +28,9 @@
             >
           </div>
         </button>
-        <button @click="$emit('open-search')" class="header-button">
+        <NuxtLink to="/discover" class="header-button">
           <Icon name="mdi:magnify" size="24" />
-        </button>
+        </NuxtLink>
 
         <ClientOnly>
           <button
@@ -55,7 +55,7 @@ import { computed } from 'vue'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import { useNotificationStore } from '~~/layers/profile/app/stores/notification.store'
 
-defineEmits(['open-search', 'open-notifications', 'open-cart'])
+defineEmits(['open-notifications', 'open-cart'])
 
 const profileStore = useProfileStore()
 const notificationStore = useNotificationStore()

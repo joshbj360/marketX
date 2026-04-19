@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
         statusCode: error.status,
         statusMessage: error.message,
       })
-    console.error('[PATCH /api/commerce/products/:id]', error)
+    logger.error('[PATCH /api/commerce/products/:id]', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

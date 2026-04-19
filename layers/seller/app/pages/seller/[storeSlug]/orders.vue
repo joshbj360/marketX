@@ -63,27 +63,58 @@
               {{ formatDate(order.created_at) }}
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Payment badge for POD -->
+            <span
+              v-if="order.paymentMethod === 'pay_on_delivery'"
+              class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+            >
+              POD
+            </span>
             <span
               class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
               :class="statusColor(order.status)"
             >
               {{ order.status }}
             </span>
-            <!-- Update status -->
+
+            <!-- POD: Confirm Cash Received (only when SHIPPED) -->
+            <button
+              v-if="order.paymentMethod === 'pay_on_delivery' && order.status === 'SHIPPED'"
+              @click="confirmCash(order.id)"
+              class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-emerald-700"
+            >
+              Cash Received
+            </button>
+
+            <!-- POD: Refuse Delivery (CONFIRMED or SHIPPED) -->
+            <button
+              v-if="order.paymentMethod === 'pay_on_delivery' && ['CONFIRMED', 'SHIPPED'].includes(order.status)"
+              @click="refuseDelivery(order.id)"
+              class="rounded-lg border border-red-200 px-3 py-1 text-xs font-bold text-red-500 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+            >
+              Refused
+            </button>
+
+            <!-- Regular orders: status update dropdown (skip CONFIRMED for paid orders) -->
             <select
-              v-if="['CONFIRMED', 'PENDING'].includes(order.status)"
-              @change="
-                (e) =>
-                  updateStatus(order.id, (e.target as HTMLSelectElement).value)
-              "
+              v-if="order.paymentMethod !== 'pay_on_delivery' && order.status === 'CONFIRMED'"
+              @change="(e) => updateStatus(order.id, (e.target as HTMLSelectElement).value)"
               class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
             >
               <option value="" disabled selected>Update status</option>
-              <option value="CONFIRMED">Confirm</option>
               <option value="SHIPPED">Mark Shipped</option>
-              <option value="DELIVERED">Mark Delivered</option>
               <option value="CANCELLED">Cancel</option>
+            </select>
+
+            <!-- POD confirmed: ship it -->
+            <select
+              v-if="order.paymentMethod === 'pay_on_delivery' && order.status === 'CONFIRMED'"
+              @change="(e) => updateStatus(order.id, (e.target as HTMLSelectElement).value)"
+              class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+            >
+              <option value="" disabled selected>Ship it</option>
+              <option value="SHIPPED">Mark Shipped</option>
             </select>
           </div>
         </div>
@@ -256,6 +287,7 @@ const STATUS_TABS = [
   { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'DELIVERED', label: 'Delivered' },
+  { value: 'RETURNED', label: 'Returned' },
 ]
 
 const loadOrders = async () => {
@@ -291,6 +323,29 @@ const addTracking = (order: any) => {
   trackingForm.trackingNumber = ''
 }
 
+const confirmCash = async (orderId: number) => {
+  try {
+    await orderApi.confirmCash(orderId)
+    const o = orders.value.find((o) => o.id === orderId)
+    if (o) { o.status = 'DELIVERED'; o.paymentStatus = 'PAID' }
+    notify({ type: 'success', text: `Cash confirmed for order #${orderId}. Wallet credited.` })
+  } catch {
+    // BaseApiClient handles the error toast
+  }
+}
+
+const refuseDelivery = async (orderId: number) => {
+  if (!confirm(`Mark order #${orderId} as delivery refused? The shipping fee will not be refunded to the buyer.`)) return
+  try {
+    await orderApi.refuseDelivery(orderId)
+    const o = orders.value.find((o) => o.id === orderId)
+    if (o) o.status = 'RETURNED'
+    notify({ type: 'success', text: `Order #${orderId} marked as delivery refused.` })
+  } catch {
+    // BaseApiClient handles the error toast
+  }
+}
+
 const saveTracking = async () => {
   if (!trackingModal.value || !trackingForm.trackingNumber) return
   try {
@@ -318,6 +373,7 @@ const statusColor = (status: string) =>
     DELIVERED:
       'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     CANCELLED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    RETURNED: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
   })[status] ||
   'bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-400'
 

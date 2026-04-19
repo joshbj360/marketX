@@ -1,5 +1,6 @@
 import { useAffiliateApi } from '../services/affiliate.api'
 import { useAffiliateStore } from '../stores/affiliate.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import type {
   AffiliateStatus,
   AffiliateEnrollment,
@@ -29,8 +30,7 @@ export const useAffiliate = () => {
       )
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to fetch affiliate status')
+      store.setError(extractErrorMessage(e, 'Failed to fetch affiliate status'))
       throw e
     } finally {
       store.setLoading(false)
@@ -45,8 +45,9 @@ export const useAffiliate = () => {
       await fetchAffiliateStatus()
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to enroll in affiliate program')
+      store.setError(
+        extractErrorMessage(e, 'Failed to enroll in affiliate program'),
+      )
       throw e
     } finally {
       store.setLoading(false)
@@ -64,8 +65,7 @@ export const useAffiliate = () => {
       store.setReferrals(result.data?.referrals || [])
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to fetch referrals')
+      store.setError(extractErrorMessage(e, 'Failed to fetch referrals'))
       throw e
     } finally {
       store.setLoading(false)

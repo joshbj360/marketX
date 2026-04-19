@@ -192,6 +192,10 @@ export const updateSellerProfileSchema = z
     state: z.string().max(100).optional(),
     locationLabel: z.string().max(200).optional(),
     hideLocation: z.boolean().optional(),
+    // ── Pay on Delivery ────────────────────────────────────────────────────
+    pod_enabled: z.boolean().optional(),
+    pod_zones: z.array(z.string().min(1)).max(37).optional(),
+    pod_delivery_days: z.number().int().min(1).max(30).optional(),
   })
   .refine(
     (data) => Object.values(data).some((value) => value !== undefined),

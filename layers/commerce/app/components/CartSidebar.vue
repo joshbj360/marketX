@@ -47,7 +47,7 @@
           <div class="flex-1 overflow-y-auto">
             <!-- Empty state -->
             <div
-              v-if="!items.length && !isLoading"
+              v-if="showEmptyState"
               class="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"
             >
               <div
@@ -77,7 +77,7 @@
 
             <!-- Loading skeleton -->
             <div
-              v-else-if="isLoading && !items.length"
+              v-else-if="showInitialLoader"
               class="space-y-4 px-5 pt-4"
             >
               <div v-for="i in 3" :key="i" class="flex animate-pulse gap-3">
@@ -245,10 +245,26 @@ const {
   cartCount,
   cartTotal,
   isLoading,
+  hasFetchedOnce,
   fetchCart,
   updateQuantity,
   removeFromCart,
 } = useCart()
+
+const showInitialLoader = computed(
+  () =>
+    props.isOpen &&
+    profileStore.isLoggedIn &&
+    !hasFetchedOnce.value &&
+    !items.value.length,
+)
+
+const showEmptyState = computed(
+  () =>
+    !items.value.length &&
+    (!profileStore.isLoggedIn || hasFetchedOnce.value) &&
+    !isLoading.value,
+)
 
 watch(
   () => props.isOpen,

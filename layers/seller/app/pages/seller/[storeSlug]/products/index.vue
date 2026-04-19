@@ -170,6 +170,7 @@
 
 <script setup lang="ts">
 import { useProduct } from '~~/layers/commerce/app/composables/useProduct'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import SellerProductCard from '~~/layers/seller/app/components/SellerProductCard.vue'
 
 definePageMeta({ middleware: 'auth', layout: 'store-layout' })
@@ -227,7 +228,7 @@ const load = async (reset = true) => {
       offset.value = products.value.length
     }
   } catch (e: any) {
-    error.value = e?.message || 'Failed to load products'
+    error.value = extractErrorMessage(e, 'Failed to load products')
   } finally {
     isLoading.value = false
   }

@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
         statusCode: 422,
         statusMessage: error.errors[0]?.message ?? 'Validation error',
       })
-    console.error('[POST /api/commerce/products]', error)
+    logger.error('[POST /api/commerce/products]', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

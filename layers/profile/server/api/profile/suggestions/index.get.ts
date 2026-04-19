@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       data: suggestions,
     }
   } catch (error: unknown) {
-    console.error('Get suggestions error:', error)
+    logger.error('Get suggestions error:', error)
 
     throw createError({
       statusCode: error.statusCode || 500,

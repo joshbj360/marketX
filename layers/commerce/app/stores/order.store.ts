@@ -3,7 +3,8 @@ import type { IOrder } from '../types/commerce.types'
 export const useOrderStore = defineStore('order', () => {
   const orders = ref<IOrder[]>([])
   const total = ref(0)
-  const isLoading = ref(false)
+  const { isLoading, hasFetchedOnce, isInitialLoad, begin, end } =
+    useAsyncStatus()
   const error = ref<string | null>(null)
 
   const getOrderById = (id: number) => orders.value.find((o) => o.id === id)
@@ -31,13 +32,16 @@ export const useOrderStore = defineStore('order', () => {
     orders,
     total,
     isLoading,
+    hasFetchedOnce,
+    isInitialLoad,
     error,
     getOrderById,
     setOrders,
     addOrders,
     updateOrder,
     setLoading: (val: boolean) => {
-      isLoading.value = val
+      if (val) begin()
+      else end()
     },
     setError: (val: string | null) => {
       error.value = val

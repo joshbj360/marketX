@@ -55,6 +55,22 @@ export async function requireAuth(event: H3Event) {
       })
     }
 
+    // 3b. Check session revocation when sessionId is present in the token.
+    // Tokens issued before this check was added won't have sessionId and are
+    // allowed through until they expire naturally (max 24 h).
+    if (payload.sessionId) {
+      const session = await prisma.session.findUnique({
+        where: { id: payload.sessionId },
+        select: { revokedAt: true, expiresAt: true },
+      })
+      if (!session || session.revokedAt || session.expiresAt < new Date()) {
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'Unauthorized - Session revoked',
+        })
+      }
+    }
+
     // 4. Fetch full user profile from database
     const user = await prisma.profile.findUnique({
       where: { id: payload.userId },

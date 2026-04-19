@@ -66,6 +66,29 @@ export class OrderApiClient extends BaseApiClient {
       method: 'POST',
     })
   }
+  async initializePOD(data: any) {
+    return this.request('/api/commerce/payments/pod-initialize', {
+      method: 'POST',
+      body: data,
+    })
+  }
+  async verifyPOD(reference: string) {
+    return this.request('/api/commerce/payments/pod-verify', {
+      method: 'POST',
+      body: { reference },
+    })
+  }
+  async confirmCash(id: number) {
+    return this.request(`/api/commerce/orders/${id}/confirm-cash`, {
+      method: 'POST',
+    })
+  }
+  async refuseDelivery(id: number, reason?: string) {
+    return this.request(`/api/commerce/orders/${id}/refuse-delivery`, {
+      method: 'POST',
+      body: { reason },
+    })
+  }
 }
 
 let instance: OrderApiClient | null = null

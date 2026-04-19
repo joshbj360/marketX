@@ -131,7 +131,7 @@ export const authService = {
     const config = useRuntimeConfig()
     const appUrl = (config.public.baseURL as string) || 'http://localhost:3000'
     await sendVerifyEmail(email, verificationToken, appUrl).catch((err) => {
-      console.error('Failed to send verification email:', err.message)
+      logger.error('Failed to send verification email:', err.message)
     })
 
     await authRepository.createAuditLog({
@@ -241,14 +241,19 @@ export const authService = {
     // 5. Success: Clear rate limit and generate tokens
     clearRateLimit(`login:${normalizedEmail}`, RATE_LIMITS.LOGIN.keyPrefix)
 
+    // Pre-generate session ID so it can be embedded in the access token,
+    // enabling server-side revocation checks in requireAuth.
+    const sessionId = crypto.randomUUID()
     const { accessToken, refreshToken } = generateTokens(
       user.id,
       user.email,
       user.role,
+      sessionId,
     )
 
     // 6. Create session
     await authRepository.createSession({
+      id: sessionId,
       userId: user.id,
       refreshToken,
       ip: ipAddress,
@@ -323,13 +328,16 @@ export const authService = {
       })
     }
 
+    const sessionId = crypto.randomUUID()
     const { accessToken, refreshToken } = generateTokens(
       user.id,
       user.email,
       user.role,
+      sessionId,
     )
 
     await authRepository.createSession({
+      id: sessionId,
       userId: user.id,
       refreshToken,
       ip: ipAddress,
@@ -414,12 +422,21 @@ export const authService = {
       throw new AuthError('USER_NOT_FOUND', 'User not found', 401)
     }
 
-    // 4. Generate new access token
-    const { accessToken } = generateTokens(
+    // 4. Rotate refresh token — generate a new one and update the session.
+    // This invalidates the old refresh token immediately: any attacker holding
+    // the old token will get 401 on their next refresh attempt.
+    const newRefreshToken = generateRefreshToken(session.userId)
+    const accessToken = generateTokens(
       session.userId,
       user.email,
       user.role,
-    )
+      session.id,
+    ).accessToken
+
+    await prisma.session.update({
+      where: { id: session.id },
+      data: { refreshToken: newRefreshToken, lastUsedAt: new Date() },
+    })
 
     // 5. Audit log
     await authRepository.createAuditLog({
@@ -432,7 +449,7 @@ export const authService = {
       success: true,
     })
 
-    return { accessToken }
+    return { accessToken, refreshToken: newRefreshToken }
   },
 
   // ==================== EMAIL VERIFICATION ====================
@@ -563,7 +580,7 @@ export const authService = {
     const config = useRuntimeConfig()
     const appUrl = (config.public.baseURL as string) || 'http://localhost:3000'
     await sendResetEmail(email, token, appUrl).catch((err) => {
-      console.error('Failed to send password reset email:', err.message)
+      logger.error('Failed to send password reset email:', err.message)
     })
 
     return { message: 'If email exists, reset link will be sent' }

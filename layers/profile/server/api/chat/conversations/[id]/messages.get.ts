@@ -28,6 +28,9 @@ export default defineEventHandler(async (event) => {
         statusMessage: error.message,
       })
     }
-    throw createError({ statusCode: 500, statusMessage: 'Server error' })
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Unable to load messages right now',
+    })
   }
 })

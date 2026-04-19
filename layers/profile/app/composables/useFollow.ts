@@ -3,6 +3,7 @@
 import { useFollowApi } from '../services/follow.api'
 import { useFollowStore } from '../stores/follow.store'
 import { useProfileStore } from '../stores/profile.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 
 export const useFollow = () => {
   const followApi = useFollowApi()
@@ -34,7 +35,7 @@ export const useFollow = () => {
 
       return result.data
     } catch (e: any) {
-      followStore.setError(e.message || 'Failed to fetch followers')
+      followStore.setError(extractErrorMessage(e, 'Failed to fetch followers'))
       throw e
     } finally {
       followStore.setLoading(false)
@@ -61,7 +62,7 @@ export const useFollow = () => {
 
       return result.data
     } catch (e: any) {
-      followStore.setError(e.message || 'Failed to fetch following')
+      followStore.setError(extractErrorMessage(e, 'Failed to fetch following'))
       throw e
     } finally {
       followStore.setLoading(false)
@@ -94,7 +95,7 @@ export const useFollow = () => {
 
       return true
     } catch (error: any) {
-      followStore.setError(error.message || 'Failed to follow user')
+      followStore.setError(extractErrorMessage(error, 'Failed to follow user'))
       throw error
     } finally {
       followStore.setLoading(false)
@@ -125,7 +126,7 @@ export const useFollow = () => {
 
       return true
     } catch (error: any) {
-      followStore.setError(error.message || 'Failed to unfollow user')
+      followStore.setError(extractErrorMessage(error, 'Failed to unfollow user'))
       throw error
     } finally {
       followStore.setLoading(false)
@@ -151,7 +152,7 @@ export const useFollow = () => {
 
       return true
     } catch (error: any) {
-      followStore.setError(error.message || 'Failed to follow store')
+      followStore.setError(extractErrorMessage(error, 'Failed to follow store'))
       throw error
     } finally {
       followStore.setLoading(false)
@@ -177,7 +178,7 @@ export const useFollow = () => {
 
       return true
     } catch (error: any) {
-      followStore.setError(error.message || 'Failed to unfollow store')
+      followStore.setError(extractErrorMessage(error, 'Failed to unfollow store'))
       throw error
     } finally {
       followStore.setLoading(false)
@@ -248,7 +249,7 @@ export const useFollow = () => {
       const result = await followApi.getSuggestedUsers(limit)
       return result.data
     } catch (e: any) {
-      followStore.setError(e.message || 'Failed to fetch suggestions')
+      followStore.setError(extractErrorMessage(e, 'Failed to fetch suggestions'))
       throw e
     } finally {
       followStore.setLoading(false)

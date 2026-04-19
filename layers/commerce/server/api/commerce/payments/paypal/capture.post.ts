@@ -59,14 +59,17 @@ export default defineEventHandler(async (event) => {
     const result = await paypal.captureOrder(paypalOrderId)
 
     if (result.status === 'COMPLETED') {
-      await prisma.orders.update({
-        where: { id: order.id },
+      // Atomic update — guards against duplicate captures or a racing webhook
+      const { count } = await prisma.orders.updateMany({
+        where: { id: order.id, paymentStatus: { notIn: ['PAID', 'FAILED'] } },
         data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
       })
-      notifySellers(order.id).catch((e) => console.error('[paypal notify]', e))
-      walletService
-        .creditSellersOnPayment(order.id)
-        .catch((e) => console.error('[paypal wallet]', e))
+      if (count > 0) {
+        notifySellers(order.id).catch((e) => logger.error('PayPal: notify sellers failed', { orderId: order.id, error: e?.message ?? e }))
+        walletService
+          .creditSellersOnPayment(order.id)
+          .catch((e) => logger.error('PayPal: wallet credit failed', { orderId: order.id, error: e?.message ?? e }))
+      }
       return { success: true, data: { status: 'paid', orderId } }
     }
 

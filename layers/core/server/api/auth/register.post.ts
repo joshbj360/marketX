@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    console.error('[Register API] Error:', error)
+    logger.error('[Register API] Error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Registration failed. Please try again.',

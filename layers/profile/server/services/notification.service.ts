@@ -18,6 +18,8 @@ export interface CreateNotificationArgs {
   postId?: string
   commentId?: string
   conversationId?: string
+  orderId?: number
+  productId?: number
 }
 
 // Map internal notification types to Prisma enum values
@@ -48,6 +50,8 @@ export const notificationService = {
       postId,
       commentId,
       conversationId,
+      orderId,
+      productId,
     } = args
 
     try {
@@ -62,6 +66,8 @@ export const notificationService = {
         postId,
         commentId,
         conversationId,
+        orderId,
+        productId,
         read: false,
       })
 
@@ -73,7 +79,7 @@ export const notificationService = {
       return notification
     } catch (error: unknown) {
       // Notifications are non-blocking/non-critical. Log error but don't crash.
-      console.error('Error creating notification:', error)
+      logger.error('Error creating notification:', error)
       return null
     }
   },

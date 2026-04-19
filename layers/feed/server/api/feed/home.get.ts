@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.error('[Home Feed API] Error:', error)
+    logger.error('[Home Feed API] Error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to fetch feed',

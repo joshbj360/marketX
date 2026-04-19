@@ -261,6 +261,7 @@ export const authRepository = {
   // ============================================
 
   async createSession(data: {
+    id?: string
     userId: string
     refreshToken: string
     ip: string
@@ -272,6 +273,7 @@ export const authRepository = {
 
     return prisma.session.create({
       data: {
+        ...(data.id ? { id: data.id } : {}),
         userId: data.userId,
         refreshToken: data.refreshToken,
         ip: data.ip,

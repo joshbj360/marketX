@@ -192,6 +192,7 @@
 import { ref, onMounted } from 'vue'
 import { notify } from '@kyvg/vue3-notification'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import StarRating from './StarRating.vue'
 const timeAgo = (date: string | Date): string => {
   const diff = Date.now() - new Date(date).getTime()
@@ -269,7 +270,7 @@ const submitReview = async () => {
   } catch (e: any) {
     notify({
       type: 'error',
-      text: e?.data?.statusMessage || 'Failed to post review',
+      text: extractErrorMessage(e, 'Failed to post review'),
     })
   } finally {
     submitting.value = false

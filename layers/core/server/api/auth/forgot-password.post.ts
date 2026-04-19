@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    console.error('[Forgot Password API] Error:', error)
+    logger.error('[Forgot Password API] Error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

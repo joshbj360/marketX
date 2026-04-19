@@ -17,20 +17,9 @@ import { useSellerStore } from '~~/layers/seller/app/store/seller.store'
 import { useCartStore } from '~~/layers/commerce/app/stores/cart.store'
 import { useSettings } from '~~/layers/profile/app/composables/useSettings'
 import { useChat } from '~~/layers/profile/app/composables/useChat'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import type { IProfile } from '~~/layers/profile/app/types/profile.types'
 import type { IAuthUser } from '~~/shared/types/auth'
-
-// Extracts a user-facing message from a $fetch / unknown error
-const extractErrorMessage = (e: unknown, fallback: string): string => {
-  if (e && typeof e === 'object') {
-    const err = e as Record<string, unknown>
-    const data = err.data as Record<string, unknown> | undefined
-    if (typeof data?.statusMessage === 'string') return data.statusMessage
-    if (typeof err.statusMessage === 'string') return err.statusMessage
-    if (typeof err.message === 'string') return err.message
-  }
-  return fallback
-}
 
 export const useAuth = () => {
   const authStore = useAuthStore()

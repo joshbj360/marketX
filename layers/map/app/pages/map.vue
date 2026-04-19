@@ -52,12 +52,14 @@
           <MapView
             v-if="locationGranted"
             :sellers="sellers as any"
+            :squares="mapSquares"
             :user-lat="userLat"
             :user-lng="userLng"
             :selected-slug="selectedSeller?.store_slug ?? null"
             :radius-km="radiusKm"
             class="map-fill"
             @select-seller="onSelectSeller"
+            @select-square="onSelectSquare"
             @deselect="selectedSeller = null"
           />
           <template #fallback>
@@ -245,7 +247,7 @@ import {
   useMapSellers,
   getCachedLocation,
 } from '~~/layers/map/app/composables/useMapSellers'
-import type { IMapSeller, MapFilter } from '~~/layers/map/app/types/map.types'
+import type { IMapSeller, IMapSquare, MapFilter } from '~~/layers/map/app/types/map.types'
 
 definePageMeta({ layout: false })
 
@@ -275,6 +277,24 @@ const {
 const locationGranted = ref(false)
 const selectedSeller = ref<IMapSeller | null>(null)
 const mobileSearch = ref('')
+
+// ── Squares ───────────────────────────────────────────────────────────────────
+const mapSquares = ref<IMapSquare[]>([])
+
+const fetchSquares = async () => {
+  try {
+    const res = await $fetch<any>('/api/map/squares')
+    mapSquares.value = res?.data ?? []
+  } catch {
+    // non-critical — map still works without squares
+  }
+}
+
+const onSelectSquare = (square: IMapSquare) => {
+  // Deselect any seller and navigate to the Square page
+  selectedSeller.value = null
+  navigateTo(`/squares/${square.slug}`)
+}
 
 // ── Location ──────────────────────────────────────────────────────────────────
 const handleAllowLocation = async () => {
@@ -328,6 +348,8 @@ const clearMobileSearch = () => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 onMounted(() => {
   if (!import.meta.client) return
+
+  fetchSquares()
 
   const cached = getCachedLocation()
   if (cached) {

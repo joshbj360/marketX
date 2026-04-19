@@ -34,13 +34,18 @@ export default defineEventHandler(async (event) => {
       userAgent,
     )
 
-    // 4. Set New Access Token Cookie
-    // We only refresh the short-lived access token here
+    // 4. Set rotated tokens in cookies
     setCookie(event, 'accessToken', result.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 24 * 60 * 60, // 24 hours
+    })
+    setCookie(event, 'refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     })
 
     return {
@@ -52,7 +57,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: error.statusCode, statusMessage: error.message })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    console.error('[Refresh Token API] Error:', error)
+    logger.error('[Refresh Token API] Error:', error)
     throw createError({ statusCode: 500, statusMessage: 'Internal server error' })
   }
 })

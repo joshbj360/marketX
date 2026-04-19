@@ -1,5 +1,6 @@
 import { useProductApi } from '../services/product.api'
 import { useProductStore } from '../stores/product.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import type { Product } from '~~/shared/types/product'
 import type { Category } from '~~/shared/types/category'
 
@@ -27,8 +28,7 @@ export const useProduct = () => {
       store.addProducts(result.data?.products || [])
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to fetch products')
+      store.setError(extractErrorMessage(e, 'Failed to fetch products'))
       throw e
     } finally {
       store.setLoading(false)
@@ -47,8 +47,7 @@ export const useProduct = () => {
       store.addProducts(result.data?.products || [], storeSlug)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to fetch seller products')
+      store.setError(extractErrorMessage(e, 'Failed to fetch seller products'))
       throw e
     } finally {
       store.setLoading(false)
@@ -64,8 +63,7 @@ export const useProduct = () => {
       store.setProduct(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Product not found')
+      store.setError(extractErrorMessage(e, 'Product not found'))
       throw e
     } finally {
       store.setLoading(false)
@@ -80,8 +78,7 @@ export const useProduct = () => {
       store.setProduct(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to create product')
+      store.setError(extractErrorMessage(e, 'Failed to create product'))
       throw e
     } finally {
       store.setLoading(false)
@@ -96,8 +93,7 @@ export const useProduct = () => {
       store.setProduct(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to update product')
+      store.setError(extractErrorMessage(e, 'Failed to update product'))
       throw e
     } finally {
       store.setLoading(false)
@@ -109,8 +105,7 @@ export const useProduct = () => {
       await api.deleteProduct(id)
       store.removeProduct(id)
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to delete product')
+      store.setError(extractErrorMessage(e, 'Failed to delete product'))
       throw e
     }
   }

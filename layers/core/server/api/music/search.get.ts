@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
     // Surface Jamendo API-level errors (code 0 = success)
     if (res?.headers?.code !== 0) {
-      console.warn('[music/search] Jamendo error:', res?.headers)
+      logger.warn('[music/search] Jamendo error:', res?.headers)
       throw createError({
         statusCode: 502,
         statusMessage: res?.headers?.error_message || 'Jamendo API error',
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
     // Re-throw H3 errors (createError above) as-is
     if (err.statusCode) throw err
 
-    console.error('[music/search] fetch error:', err?.message)
+    logger.error('[music/search] fetch error:', err?.message)
     throw createError({
       statusCode: 502,
       statusMessage: 'Failed to reach music provider',

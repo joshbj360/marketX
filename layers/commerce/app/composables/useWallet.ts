@@ -1,5 +1,6 @@
 import { useWalletApi } from '../services/wallet.api'
 import { useWalletStore } from '../stores/wallet.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 
 export const useWallet = () => {
   const api = useWalletApi()
@@ -25,7 +26,7 @@ export const useWallet = () => {
       )
       return result.data
     } catch (e: any) {
-      store.setError(e.message || 'Failed to fetch wallet')
+      store.setError(extractErrorMessage(e, 'Failed to fetch wallet'))
       throw e
     } finally {
       store.setLoading(false)
@@ -44,7 +45,7 @@ export const useWallet = () => {
       }
       return result.data
     } catch (e: any) {
-      store.setError(e.message || 'Failed to fetch transactions')
+      store.setError(extractErrorMessage(e, 'Failed to fetch transactions'))
       throw e
     } finally {
       store.setLoading(false)
@@ -59,7 +60,7 @@ export const useWallet = () => {
       await fetchWallet()
       return result.data
     } catch (e: any) {
-      store.setError(e.message || 'Failed to add funds')
+      store.setError(extractErrorMessage(e, 'Failed to add funds'))
       throw e
     } finally {
       store.setLoading(false)
@@ -74,7 +75,7 @@ export const useWallet = () => {
       await fetchWallet()
       return result.data
     } catch (e: any) {
-      store.setError(e.message || 'Failed to withdraw')
+      store.setError(extractErrorMessage(e, 'Failed to withdraw'))
       throw e
     } finally {
       store.setLoading(false)

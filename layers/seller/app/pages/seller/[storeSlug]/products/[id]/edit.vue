@@ -1,5 +1,13 @@
 <template>
   <div class="px-4 py-6 sm:px-6">
+    <!-- Save status overlay -->
+    <SaveStatusOverlay
+      :saving="isLoading"
+      :success="saveSuccess"
+      :error="error"
+      saving-text="Saving product…"
+      success-text="Changes saved!"
+    />
     <div class="mb-6 flex items-center gap-3">
       <NuxtLink
         :to="`/seller/${storeSlug}/products`"
@@ -49,13 +57,13 @@
             v-for="tab in tabs"
             :key="tab.id"
             type="button"
-            @click="activeTab = tab.id"
             :class="[
               'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all',
               activeTab === tab.id
                 ? 'bg-white text-gray-900 shadow-sm dark:bg-neutral-700 dark:text-neutral-100'
                 : 'text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-300',
             ]"
+            @click="activeTab = tab.id"
           >
             <Icon :name="tab.icon" size="15" />
             {{ tab.label }}
@@ -65,8 +73,8 @@
         <!-- ── DETAILS TAB ── -->
         <form
           v-show="activeTab === 'details'"
-          @submit.prevent="handleSubmit"
           class="space-y-6"
+          @submit.prevent="handleSubmit"
         >
           <!-- Error / Success banners -->
           <div
@@ -121,8 +129,8 @@
                 </div>
                 <button
                   type="button"
-                  @click="removeExistingMedia(img.id)"
                   class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                  @click="removeExistingMedia(img.id)"
                 >
                   <Icon name="mdi:close" size="12" />
                 </button>
@@ -139,17 +147,36 @@
                   v-if="img.uploading"
                   class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/55"
                 >
-                  <svg width="36" height="36" viewBox="0 0 36 36" class="-rotate-90">
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3" />
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 36 36"
+                    class="-rotate-90"
+                  >
                     <circle
-                      cx="18" cy="18" r="14" fill="none" stroke="#F43F5E" stroke-width="3"
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.2)"
+                      stroke-width="3"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#F43F5E"
+                      stroke-width="3"
                       stroke-linecap="round"
                       :stroke-dasharray="`${2 * Math.PI * 14}`"
                       :stroke-dashoffset="`${2 * Math.PI * 14 * (1 - img.progress / 100)}`"
                       style="transition: stroke-dashoffset 0.15s ease"
                     />
                   </svg>
-                  <span class="text-[11px] font-bold text-white">{{ img.progress }}%</span>
+                  <span class="text-[11px] font-bold text-white"
+                    >{{ img.progress }}%</span
+                  >
                 </div>
                 <div
                   v-if="visibleExistingMedia.length === 0 && i === 0"
@@ -159,8 +186,8 @@
                 </div>
                 <button
                   type="button"
-                  @click="removeNewMedia(i)"
                   class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                  @click="removeNewMedia(i)"
                 >
                   <Icon name="mdi:close" size="12" />
                 </button>
@@ -222,8 +249,8 @@
                 >
                 <button
                   type="button"
-                  @click="bgMusicRemoved = true"
                   class="flex-shrink-0 text-gray-400 hover:text-red-500"
+                  @click="bgMusicRemoved = true"
                 >
                   <Icon name="mdi:close" size="16" />
                 </button>
@@ -253,8 +280,8 @@
                 </div>
                 <button
                   type="button"
-                  @click="newBgMusic = null"
                   class="flex-shrink-0 text-gray-400 hover:text-red-500"
+                  @click="newBgMusic = null"
                 >
                   <Icon name="mdi:close" size="16" />
                 </button>
@@ -288,429 +315,23 @@
           </div>
 
           <!-- Basic Info -->
-          <div
-            class="space-y-4 rounded-xl border border-gray-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            <h2 class="font-semibold text-gray-900 dark:text-neutral-100">
-              Basic Information
-            </h2>
+          <ProductBasicInfo :form="form" />
 
-            <div>
-              <label
-                class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                >Product Title *</label
-              >
-              <input
-                v-model="form.title"
-                type="text"
-                required
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-              />
-            </div>
+          <!-- Variants -->
+          <ProductVariantsSection :variants="form.variants" />
 
-            <div>
-              <label
-                class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                >Description *</label
-              >
-              <ClientOnly>
-                <HtmlDescriptionEditor
-                  v-model="form.description"
-                  placeholder="Describe your product…"
-                />
-                <template #fallback>
-                  <textarea
-                    v-model="form.description"
-                    rows="4"
-                    class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                  />
-                </template>
-              </ClientOnly>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                  >Price (₦) *</label
-                >
-                <input
-                  v-model.number="form.price"
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                />
-              </div>
-              <div>
-                <label
-                  class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                  >Discount (%)</label
-                >
-                <input
-                  v-model.number="form.discount"
-                  type="number"
-                  min="0"
-                  max="100"
-                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                />
-              </div>
-            </div>
-
-            <!-- Affiliate Commission -->
-            <div
-              class="rounded-lg border border-purple-100 bg-purple-50 p-4 dark:border-purple-800/30 dark:bg-purple-900/10"
-            >
-              <label
-                class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-              >
-                Affiliate Commission (₦)
-                <span
-                  class="ml-1 text-xs font-normal text-gray-400 dark:text-neutral-500"
-                  >— optional.</span
-                >
-              </label>
-              <input
-                v-model.number="form.affiliateCommission"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 500"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand sm:w-1/2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-              />
-              <p
-                v-if="form.affiliateCommission && form.affiliateCommission > 0"
-                class="mt-1.5 text-xs text-purple-600 dark:text-purple-400"
-              >
-                Marketers will see: "Earn ₦{{
-                  Number(form.affiliateCommission).toLocaleString()
-                }}
-                by selling this product"
-              </p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                  >SKU</label
-                >
-                <input
-                  v-model="form.SKU"
-                  type="text"
-                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                />
-              </div>
-              <div>
-                <label
-                  class="mb-1 block text-sm font-medium text-gray-700 dark:text-neutral-300"
-                  >Status</label
-                >
-                <select
-                  v-model="form.status"
-                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- ── Variants ── -->
-          <div
-            class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="font-semibold text-gray-900 dark:text-neutral-100">
-                  Variants
-                </h2>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-neutral-400">
-                  Sizes, colours, or any option that changes price or stock.
-                </p>
-              </div>
-              <button
-                type="button"
-                @click="addVariant"
-                class="flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-sm font-semibold text-brand transition-colors hover:bg-brand/10"
-              >
-                <Icon name="mdi:plus" size="15" /> Add Variant
-              </button>
-            </div>
-
-            <div v-if="form.variants.length" class="space-y-2">
-              <div
-                v-for="(variant, i) in form.variants"
-                :key="i"
-                class="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-neutral-700 dark:bg-neutral-900"
-              >
-                <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Size / Name *</label
-                    >
-                    <input
-                      v-model="variant.size"
-                      placeholder="e.g. M, Red, 42"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Price (₦)
-                      <span class="font-normal opacity-60"
-                        >— blank = base price</span
-                      ></label
-                    >
-                    <input
-                      v-model.number="variant.price"
-                      type="number"
-                      min="0"
-                      placeholder="Same as base"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Stock</label
-                    >
-                    <input
-                      v-model.number="variant.stock"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  @click="removeVariant(i)"
-                  class="mt-6 flex-shrink-0 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-                >
-                  <Icon name="mdi:trash-can-outline" size="16" />
-                </button>
-              </div>
-            </div>
-
-            <button
-              v-else
-              type="button"
-              @click="addVariant"
-              class="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-8 transition-colors hover:border-brand hover:bg-brand/5 dark:border-neutral-700"
-            >
-              <Icon
-                name="mdi:tag-multiple-outline"
-                size="28"
-                class="text-gray-400 dark:text-neutral-500"
-              />
-              <span
-                class="text-sm font-medium text-gray-500 dark:text-neutral-400"
-                >Click to add your first variant</span
-              >
-              <span class="text-xs text-gray-400 dark:text-neutral-500"
-                >e.g. Small / Medium / Large or Red / Blue</span
-              >
-            </button>
-          </div>
-
-          <!-- ── Volume Offers ── -->
-          <div
-            class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="font-semibold text-gray-900 dark:text-neutral-100">
-                  Volume Offers
-                </h2>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-neutral-400">
-                  Reward buyers who purchase more. e.g. "Buy 3, get 10% off"
-                </p>
-              </div>
-              <button
-                type="button"
-                @click="addOffer"
-                class="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-              >
-                <Icon name="mdi:plus" size="15" /> Add Offer
-              </button>
-            </div>
-
-            <div v-if="form.offers.length" class="space-y-2">
-              <div
-                v-for="(offer, i) in form.offers"
-                :key="i"
-                class="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/10"
-              >
-                <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Min. Quantity *</label
-                    >
-                    <input
-                      v-model.number="offer.minQuantity"
-                      type="number"
-                      min="2"
-                      placeholder="e.g. 3"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Discount % *</label
-                    >
-                    <input
-                      v-model.number="offer.discount"
-                      type="number"
-                      min="1"
-                      max="100"
-                      placeholder="e.g. 10"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-500 dark:text-neutral-400"
-                      >Label
-                      <span class="font-normal opacity-60"
-                        >— shown to buyer</span
-                      ></label
-                    >
-                    <input
-                      v-model="offer.label"
-                      placeholder="e.g. Bundle Deal"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                    />
-                  </div>
-                </div>
-                <div class="flex flex-col items-end gap-1">
-                  <span
-                    v-if="offer.minQuantity && offer.discount"
-                    class="whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                  >
-                    Buy {{ offer.minQuantity }}+ → {{ offer.discount }}% off
-                  </span>
-                  <button
-                    type="button"
-                    @click="removeOffer(i)"
-                    class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-                  >
-                    <Icon name="mdi:trash-can-outline" size="16" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button
-              v-else
-              type="button"
-              @click="addOffer"
-              class="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-6 transition-colors hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-neutral-700"
-            >
-              <Icon
-                name="mdi:percent-outline"
-                size="26"
-                class="text-gray-400 dark:text-neutral-500"
-              />
-              <span
-                class="text-sm font-medium text-gray-500 dark:text-neutral-400"
-                >No offers yet — add a volume deal</span
-              >
-            </button>
-          </div>
+          <!-- Volume Offers -->
+          <VolumeOffersSection :offers="form.offers" />
 
           <!-- Categories -->
-          <div
-            class="rounded-xl border border-gray-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            <h2 class="mb-1 font-semibold text-gray-900 dark:text-neutral-100">
-              Categories
-            </h2>
-            <p class="mb-3 text-xs text-gray-500 dark:text-neutral-400">
-              Select all that apply.
-            </p>
-            <div
-              v-if="categoriesLoading"
-              class="flex items-center gap-2 text-sm text-gray-400 dark:text-neutral-500"
-            >
-              <Icon name="mdi:loading" size="16" class="animate-spin" /> Loading
-              categories…
-            </div>
-            <div
-              v-else-if="categories.length === 0"
-              class="text-sm text-gray-400 dark:text-neutral-500"
-            >
-              No categories available.
-            </div>
-            <div v-else class="flex flex-wrap gap-2">
-              <button
-                v-for="cat in categories"
-                :key="cat.id"
-                type="button"
-                @click="toggleCategory(cat.id)"
-                class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-                :class="
-                  form.categoryIds.includes(cat.id)
-                    ? 'border-brand bg-brand text-white'
-                    : 'border-gray-200 bg-gray-100 text-gray-700 hover:border-brand dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-300'
-                "
-              >
-                {{ cat.name }}
-              </button>
-            </div>
-          </div>
+          <ProductCategoriesSection
+            :categories="categories"
+            :categories-loading="categoriesLoading"
+            :category-ids="form.categoryIds"
+          />
 
           <!-- Tags -->
-          <div
-            class="rounded-xl border border-gray-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            <h2 class="mb-1 font-semibold text-gray-900 dark:text-neutral-100">
-              Tags
-              <span
-                class="ml-1 text-sm font-normal text-gray-400 dark:text-neutral-500"
-                >(optional, max 10)</span
-              >
-            </h2>
-            <p class="mb-3 text-xs text-gray-500 dark:text-neutral-400">
-              Tags help shoppers discover your product
-            </p>
-            <div
-              v-if="form.tagNames.length"
-              class="mb-2 flex flex-wrap gap-1.5"
-            >
-              <span
-                v-for="(tag, i) in form.tagNames"
-                :key="i"
-                class="flex items-center gap-1 rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand"
-              >
-                #{{ tag }}
-                <button
-                  type="button"
-                  @click="form.tagNames.splice(i, 1)"
-                  class="ml-0.5 rounded-full hover:bg-brand/20"
-                >
-                  <Icon name="mdi:close" size="13" />
-                </button>
-              </span>
-            </div>
-            <input
-              v-if="form.tagNames.length < 10"
-              v-model="tagInput"
-              type="text"
-              placeholder="Type a tag and press Enter or comma"
-              class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none transition-all focus:border-brand/50 focus:bg-white focus:ring-2 focus:ring-brand/10 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:bg-neutral-800"
-              @keydown.enter.prevent="addTag"
-              @keydown.188.prevent="addTag"
-            />
-          </div>
+          <ProductTagsSection :tag-names="form.tagNames" />
 
           <!-- Flags -->
           <div
@@ -798,9 +419,9 @@
             </div>
             <button
               type="button"
-              @click="runAiMagic"
               :disabled="isGeneratingAI"
               class="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 sm:w-auto dark:bg-white dark:text-gray-900"
+              @click="runAiMagic"
             >
               <Icon
                 v-if="isGeneratingAI"
@@ -828,15 +449,24 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import { definePageMeta } from '#app'
+import { useRoute } from 'vue-router'
 import { notify } from '@kyvg/vue3-notification'
 import { useProduct } from '~~/layers/commerce/app/composables/useProduct'
 import { useProductApi } from '~~/layers/commerce/app/services/product.api'
 import { useMediaUpload } from '~~/layers/core/app/composables/useMediaUpload'
 import { useAiApi } from '~~/layers/core/app/services/ai.api'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 
 import ProductPromotePanel from '~~/layers/seller/app/components/ProductPromotePanel.vue'
-import HtmlDescriptionEditor from '~~/layers/seller/app/components/HtmlDescriptionEditor.vue'
+import SaveStatusOverlay from '~~/layers/core/app/components/SaveStatusOverlay.vue'
+import ProductBasicInfo from '~~/layers/seller/app/components/product-form/ProductBasicInfo.vue'
+import ProductVariantsSection from '~~/layers/seller/app/components/product-form/ProductVariantsSection.vue'
+import VolumeOffersSection from '~~/layers/seller/app/components/product-form/VolumeOffersSection.vue'
+import ProductCategoriesSection from '~~/layers/seller/app/components/product-form/ProductCategoriesSection.vue'
+import ProductTagsSection from '~~/layers/seller/app/components/product-form/ProductTagsSection.vue'
 
 definePageMeta({ middleware: 'auth', layout: 'store-layout' })
 
@@ -845,6 +475,7 @@ const storeSlug = computed(() => route.params.storeSlug as string)
 const productId = computed(() => Number(route.params.id))
 
 const { updateProduct, isLoading, error } = useProduct()
+const saveSuccess = ref(false)
 const productApi = useProductApi()
 const { uploadMedia } = useMediaUpload()
 const aiApi = useAiApi()
@@ -1002,27 +633,6 @@ const socialCaptions = reactive({
 const categories = ref<Array<{ id: number; name: string; slug: string }>>([])
 const categoriesLoading = ref(false)
 
-const tagInput = ref('')
-const addTag = () => {
-  const tag = tagInput.value.trim().toLowerCase().replace(/,/g, '')
-  if (tag && !form.tagNames.includes(tag) && form.tagNames.length < 10) {
-    form.tagNames.push(tag)
-  }
-  tagInput.value = ''
-}
-
-const toggleCategory = (id: number) => {
-  const idx = form.categoryIds.indexOf(id)
-  if (idx === -1) form.categoryIds.push(id)
-  else form.categoryIds.splice(idx, 1)
-}
-
-const addVariant = () => form.variants.push({ size: '', price: null, stock: 0 })
-const removeVariant = (i: number) => form.variants.splice(i, 1)
-const addOffer = () =>
-  form.offers.push({ minQuantity: null, discount: null, label: '' })
-const removeOffer = (i: number) => form.offers.splice(i, 1)
-
 onMounted(async () => {
   categoriesLoading.value = true
 
@@ -1085,7 +695,7 @@ onMounted(async () => {
           }
         }
       } catch (e: any) {
-        fetchError.value = e.message || 'Failed to load product'
+        fetchError.value = extractErrorMessage(e, 'Failed to load product')
       } finally {
         isFetching.value = false
       }
@@ -1169,9 +779,11 @@ const handleSubmit = async () => {
     }
 
     await updateProduct(productId.value, payload)
+    saveSuccess.value = true
     successMsg.value = 'Product updated successfully!'
     setTimeout(() => {
       successMsg.value = null
+      saveSuccess.value = false
     }, 3000)
   } catch {
     // error is reactive from composable

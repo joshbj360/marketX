@@ -438,6 +438,7 @@ import { useSellerManagement } from '~~/layers/seller/app/composables/useSellerM
 import { useMediaUpload } from '~~/layers/core/app/composables/useMediaUpload'
 import { useProductApi } from '~~/layers/commerce/app/services/product.api'
 import { useAiApi } from '~~/layers/core/app/services/ai.api'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import MusicPicker from '~~/layers/core/app/components/MusicPicker.vue'
 import type { MusicSelection } from '~~/layers/core/app/components/MusicPicker.vue'
 
@@ -699,8 +700,7 @@ const submit = async () => {
     emit('posted')
     setTimeout(() => close(), 800)
   } catch (e: any) {
-    submitError.value =
-      e?.data?.statusMessage || e?.message || 'Failed to create product'
+    submitError.value = extractErrorMessage(e, 'Failed to create product')
   } finally {
     isSubmitting.value = false
   }

@@ -380,6 +380,106 @@
       </div>
 
       <!-- ────────────────────────────────────────────────────────────────── -->
+      <!-- TAB: SQUARES                                                         -->
+      <!-- ────────────────────────────────────────────────────────────────── -->
+      <div v-else-if="activeTab === 'squares'" class="mt-5">
+        <!-- Skeleton -->
+        <div v-if="squaresLoading && !squares.length" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="n in 6" :key="n" class="h-40 animate-pulse rounded-2xl bg-gray-100 dark:bg-neutral-800" />
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="!squaresLoading && !squares.length" class="py-24 text-center">
+          <Icon name="mdi:store-marker-outline" size="48" class="mx-auto mb-3 text-gray-300 dark:text-neutral-600" />
+          <p class="text-sm text-gray-500 dark:text-neutral-400">
+            No squares found{{ searchInput ? ` for "${searchInput}"` : '' }}
+          </p>
+        </div>
+
+        <!-- Grid -->
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <NuxtLink
+            v-for="sq in squares"
+            :key="sq.id"
+            :to="`/squares/${sq.slug}`"
+            class="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:border-amber-200 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-amber-500/30"
+          >
+            <!-- Banner / gradient -->
+            <div class="relative h-24 overflow-hidden">
+              <img
+                v-if="sq.bannerUrl"
+                :src="sq.bannerUrl"
+                :alt="sq.name"
+                class="h-full w-full object-cover opacity-80"
+              />
+              <div
+                v-else
+                class="h-full w-full"
+                :style="`background: linear-gradient(135deg, ${sq.accentColor || '#f59e0b'}33, ${sq.accentColor || '#f59e0b'}11)`"
+              />
+              <!-- Type badge -->
+              <span class="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/80 backdrop-blur-sm">
+                {{ sq.type === 'GEOGRAPHIC' ? '📍 Location' : '🏷️ Category' }}
+              </span>
+            </div>
+
+            <div class="relative -mt-5 px-4 pb-4">
+              <!-- Icon circle -->
+              <div
+                class="mb-2 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-2 border-white bg-white shadow-sm dark:border-neutral-900 dark:bg-neutral-900"
+                :style="`border-color: ${sq.accentColor || '#f59e0b'}44`"
+              >
+                <img v-if="sq.iconUrl" :src="sq.iconUrl" :alt="sq.name" class="h-full w-full object-cover rounded-xl" />
+                <span v-else class="text-sm font-black" :style="`color: ${sq.accentColor || '#f59e0b'}`">
+                  {{ sq.name.slice(0, 2).toUpperCase() }}
+                </span>
+              </div>
+
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-bold text-gray-900 transition-colors group-hover:text-amber-600 dark:text-neutral-100 dark:group-hover:text-amber-400">
+                    {{ sq.name }}
+                  </p>
+                  <p v-if="sq.city || sq.state" class="mt-0.5 truncate text-[11px] text-gray-400 dark:text-neutral-500">
+                    📍 {{ [sq.city, sq.state].filter(Boolean).join(', ') }}
+                  </p>
+                  <div class="mt-1 flex items-center gap-2 text-[11px] text-gray-500 dark:text-neutral-400">
+                    <span>{{ formatNum(sq.memberCount || 0) }} sellers</span>
+                    <span class="text-gray-300 dark:text-neutral-600">·</span>
+                    <span>{{ formatNum(sq.followerCount || 0) }} followers</span>
+                  </div>
+                </div>
+
+                <!-- Follow button -->
+                <button
+                  class="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold transition-all"
+                  :class="squareFollowing.has(sq.id)
+                    ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700/50'
+                    : 'bg-amber-500 text-white hover:bg-amber-600'"
+                  :disabled="squareFollowLoading.has(sq.id)"
+                  @click.prevent="toggleFollow(sq)"
+                >
+                  <Icon v-if="squareFollowLoading.has(sq.id)" name="eos-icons:loading" size="12" class="inline" />
+                  <span v-else>{{ squareFollowing.has(sq.id) ? 'Following' : 'Follow' }}</span>
+                </button>
+              </div>
+
+              <!-- Description snippet -->
+              <p v-if="sq.description" class="mt-2 line-clamp-2 text-[11px] leading-relaxed text-gray-500 dark:text-neutral-400">
+                {{ sq.description }}
+              </p>
+            </div>
+          </NuxtLink>
+        </div>
+
+        <!-- Infinite scroll trigger -->
+        <div ref="squareTrigger" class="mt-6 h-10" />
+        <div v-if="squaresLoading && squares.length" class="flex justify-center py-8">
+          <Icon name="eos-icons:loading" size="24" class="text-amber-500" />
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────────────────────────────── -->
       <!-- TAB: SELLERS                                                        -->
       <!-- ────────────────────────────────────────────────────────────────── -->
       <div v-else-if="activeTab === 'sellers'" class="mt-5">
@@ -807,6 +907,7 @@ const selectedCategory = ref<string | null>(null)
 // ── Tabs ────────────────────────────────────────────────────────────────────
 const tabs = [
   { key: 'trending', label: 'Trending', icon: 'mdi:fire' },
+  { key: 'squares', label: 'Squares', icon: 'mdi:store-marker-outline' },
   { key: 'fresh', label: 'Fresh Drops', icon: 'mdi:lightning-bolt' },
   { key: 'deals', label: 'Deals', icon: 'mdi:tag-heart-outline' },
   { key: 'preloved', label: 'Pre-loved', icon: 'mdi:recycle' },
@@ -824,6 +925,7 @@ const searchInput = ref('')
 const searchPlaceholder = computed(() => {
   const map: Record<TabKey, string> = {
     trending: 'Search trending…',
+    squares: 'Search squares…',
     fresh: 'Search fresh drops…',
     deals: 'Search deals…',
     preloved: 'Search pre-loved items…',
@@ -883,6 +985,62 @@ const loadTrending = async () => {
     trendingLoading.value = false
   }
 }
+
+// ── SQUARES ──────────────────────────────────────────────────────────────────
+const squares = ref<any[]>([])
+const squaresTotal = ref(0)
+const squaresLoading = ref(false)
+const squareTrigger = ref<HTMLElement | null>(null)
+const squareFollowing = ref<Set<string>>(new Set())
+const squareFollowLoading = ref<Set<string>>(new Set())
+
+const loadSquares = async (reset = false) => {
+  if (reset) { squares.value = []; squaresTotal.value = 0 }
+  if (squaresLoading.value) return
+  squaresLoading.value = true
+  try {
+    const res = await $fetch<any>('/api/squares', {
+      params: {
+        limit: 20,
+        offset: squares.value.length,
+        search: searchInput.value.trim() || undefined,
+      },
+    })
+    squares.value.push(...(res?.data ?? []))
+    squaresTotal.value = res?.meta?.total ?? squares.value.length
+  } catch {
+    //
+  } finally {
+    squaresLoading.value = false
+  }
+}
+
+const toggleFollow = async (square: any) => {
+  if (squareFollowLoading.value.has(square.id)) return
+  squareFollowLoading.value = new Set([...squareFollowLoading.value, square.id])
+  const isFollowing = squareFollowing.value.has(square.id)
+  try {
+    if (isFollowing) {
+      await $fetch(`/api/squares/${square.slug}/follow`, { method: 'DELETE' })
+      const next = new Set(squareFollowing.value)
+      next.delete(square.id)
+      squareFollowing.value = next
+      square.followerCount = Math.max(0, (square.followerCount ?? 0) - 1)
+    } else {
+      await $fetch(`/api/squares/${square.slug}/follow`, { method: 'POST' })
+      squareFollowing.value = new Set([...squareFollowing.value, square.id])
+      square.followerCount = (square.followerCount ?? 0) + 1
+    }
+  } catch {
+    //
+  } finally {
+    const next = new Set(squareFollowLoading.value)
+    next.delete(square.id)
+    squareFollowLoading.value = next
+  }
+}
+
+const squaresHasMore = computed(() => squares.value.length < squaresTotal.value)
 
 // ── HORIZONTAL BAR STRIPS (shown in Trending tab) ─────────────────────────────
 const freshStrip = ref<IProduct[]>([])
@@ -1107,7 +1265,8 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 const debouncedSearchAction = (val: string) => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    if (activeTab.value === 'products') loadProducts(true)
+    if (activeTab.value === 'squares') loadSquares(true)
+    else if (activeTab.value === 'products') loadProducts(true)
     else if (activeTab.value === 'fresh') loadFresh(true)
     else if (activeTab.value === 'deals') loadDeals(true)
     else if (activeTab.value === 'preloved') loadPreloved(true)
@@ -1125,6 +1284,7 @@ watch(productFilter, () => loadProducts(true))
 const route = useRoute()
 watch(activeTab, (tab) => {
   if (tab === 'trending' && !trendingProducts.value.length) loadTrending()
+  else if (tab === 'squares' && !squares.value.length) loadSquares()
   else if (tab === 'fresh' && !freshProducts.value.length) loadFresh()
   else if (tab === 'deals' && !dealProducts.value.length) loadDeals()
   else if (tab === 'preloved' && !prelovedProducts.value.length) loadPreloved()
@@ -1186,13 +1346,14 @@ onMounted(async () => {
     return
   }
 
-  const validTabs = ['trending', 'fresh', 'deals', 'preloved', 'products', 'sellers', 'people', 'tags'] as const
+  const validTabs = ['trending', 'squares', 'fresh', 'deals', 'preloved', 'products', 'sellers', 'people', 'tags'] as const
   if (tabParam && (validTabs as readonly string[]).includes(tabParam)) {
     activeTab.value = tabParam as typeof activeTab.value
     // Load data for the target tab
     if (tabParam === 'fresh') { loadStrips(); loadFresh(); return }
     if (tabParam === 'deals') { loadStrips(); loadDeals(); return }
     if (tabParam === 'preloved') { loadStrips(); loadPreloved(); return }
+    if (tabParam === 'squares') { loadSquares(); return }
     if (tabParam === 'products') { loadProducts(); return }
     if (tabParam === 'sellers') { loadSellers(); return }
   }
@@ -1204,7 +1365,8 @@ onMounted(async () => {
   const observer = new IntersectionObserver(
     (entries) => {
       if (!entries[0]?.isIntersecting) return
-      if (activeTab.value === 'products' && productHasMore.value) loadProducts()
+      if (activeTab.value === 'squares' && squaresHasMore.value) loadSquares()
+      else if (activeTab.value === 'products' && productHasMore.value) loadProducts()
       else if (activeTab.value === 'sellers' && sellerHasMore.value) loadSellers()
       else if (activeTab.value === 'fresh' && freshHasMore.value) loadFresh()
       else if (activeTab.value === 'deals' && dealHasMore.value) loadDeals()
@@ -1214,6 +1376,7 @@ onMounted(async () => {
   )
 
   watchEffect(() => {
+    if (squareTrigger.value) observer.observe(squareTrigger.value)
     if (productTrigger.value) observer.observe(productTrigger.value)
     if (sellerTrigger.value) observer.observe(sellerTrigger.value)
     if (freshTrigger.value) observer.observe(freshTrigger.value)

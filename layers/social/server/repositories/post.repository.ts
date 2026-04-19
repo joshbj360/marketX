@@ -61,6 +61,12 @@ export const postRepository = {
 
   // ========== POSTS ==========
   async createPost(userId: string, data: any) {
+    // Inherit squareId from the author's primary Square (if they are a seller)
+    const sellerProfile = await prisma.sellerProfile.findFirst({
+      where: { profileId: userId },
+      select: { primarySquareId: true },
+    })
+
     const postData: any = {
       id: crypto.randomUUID(),
       authorId: userId,
@@ -68,6 +74,7 @@ export const postRepository = {
       content: data.content,
       visibility: data.visibility || 'PUBLIC',
       contentType: data.contentType || 'COMMERCE',
+      ...(sellerProfile?.primarySquareId && { squareId: sellerProfile.primarySquareId }),
     }
 
     if (data.allowComments !== undefined) {

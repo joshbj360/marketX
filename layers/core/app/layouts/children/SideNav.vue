@@ -26,10 +26,7 @@
       </NuxtLink>
 
       <NuxtLink to="/discover" class="nav-button group" active-class="active">
-        <Icon
-          :name="isDiscover ? 'mdi:compass' : 'mdi:compass-outline'"
-          size="24"
-        />
+        <Icon name="mdi:magnify" size="24" />
         <span class="nav-text">Discover</span>
       </NuxtLink>
 
@@ -41,6 +38,14 @@
       <NuxtLink to="/map" class="nav-button group" active-class="active">
         <Icon name="mdi:map-marker-radius-outline" size="24" />
         <span class="nav-text">Near Me</span>
+      </NuxtLink>
+
+      <NuxtLink to="/squares" class="nav-button group" active-class="active">
+        <Icon
+          :name="isSquares ? 'mdi:storefront' : 'mdi:storefront-outline'"
+          size="24"
+        />
+        <span class="nav-text">Squares</span>
       </NuxtLink>
     </nav>
 
@@ -235,6 +240,7 @@ const { cartCount } = useCart()
 
 const isHome = computed(() => route.path === '/')
 const isDiscover = computed(() => route.path === '/discover')
+const isSquares = computed(() => route.path.startsWith('/squares'))
 const unreadCount = computed(() => notificationStore.unreadCount)
 const messageCount = computed(() =>
   chatStore.conversations.reduce(

@@ -12,7 +12,7 @@
             class="text-gray-500 dark:text-neutral-400"
           />
         </div>
-        <span class="text-[13px] font-bold tracking-wide text-gray-900 dark:text-white">Shop Today</span>
+        <span class="text-[13px] font-bold tracking-wide text-gray-900 dark:text-white">{{ label || 'Shop Today' }}</span>
       </div>
       <NuxtLink
         to="/fresh-drops"
@@ -53,7 +53,7 @@
           <div class="relative aspect-square w-full overflow-hidden bg-gray-100 dark:bg-neutral-800">
             <img
               v-if="product.media?.[0]?.url"
-              :src="product.media[0].url"
+              :src="product.media[0].type === 'VIDEO' ? videoThumb(product.media[0].url) : imgThumb(product.media[0].url)"
               :alt="product.title"
               loading="lazy"
               width="130"
@@ -111,6 +111,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { videoThumb, imgThumb } from '~~/layers/core/app/utils/cloudinary'
 
 const props = defineProps<{
   products: Array<{
@@ -119,8 +120,9 @@ const props = defineProps<{
     price: number
     discount?: number | null
     isDeal?: boolean
-    media?: Array<{ url: string }>
+    media?: Array<{ url: string; type?: string }>
   }>
+  label?: string
 }>()
 
 defineEmits<{ 'open-product': [product: (typeof props.products)[number]] }>()

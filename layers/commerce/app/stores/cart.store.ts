@@ -25,7 +25,8 @@ export const useCartStore = defineStore(
   'cart',
   () => {
     const items = ref<ICartItem[]>([])
-    const isLoading = ref(false)
+    const { isLoading, hasFetchedOnce, isInitialLoad, begin, end, reset } =
+      useAsyncStatus()
     const error = ref<string | null>(null)
 
     const cartCount = computed(() =>
@@ -72,6 +73,8 @@ export const useCartStore = defineStore(
     return {
       items,
       isLoading,
+      hasFetchedOnce,
+      isInitialLoad,
       error,
       cartCount,
       cartTotal,
@@ -80,14 +83,15 @@ export const useCartStore = defineStore(
       removeItem,
       addItem,
       setLoading: (val: boolean) => {
-        isLoading.value = val
+        if (val) begin()
+        else end()
       },
       setError: (val: string | null) => {
         error.value = val
       },
       clearStore: () => {
         items.value = []
-        isLoading.value = false
+        reset()
         error.value = null
       },
     }

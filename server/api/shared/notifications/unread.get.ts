@@ -9,6 +9,9 @@ export default defineEventHandler(async (event) => {
     const result = await notificationService.getUnreadCount(user.id)
     return { success: true, data: result }
   } catch (error: any) {
-    throw createError({ statusCode: 500, statusMessage: 'Server error' })
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Unable to load unread notification count',
+    })
   }
 })

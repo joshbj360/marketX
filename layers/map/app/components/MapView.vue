@@ -21,10 +21,11 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import type { IMapSeller } from '../types/map.types'
+import type { IMapSeller, IMapSquare } from '../types/map.types'
 
 const props = defineProps<{
   sellers: IMapSeller[]
+  squares: IMapSquare[]
   userLat: number | null
   userLng: number | null
   selectedSlug: string | null
@@ -33,6 +34,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'select-seller': [seller: IMapSeller]
+  'select-square': [square: IMapSquare]
   'deselect': []
 }>()
 
@@ -41,6 +43,7 @@ let map: any = null
 let maplibregl: any = null
 
 const markerMap = new Map<string, { marker: any; el: HTMLElement }>()
+const squareMarkerMap = new Map<string, { marker: any; el: HTMLElement }>()
 let userMarker: any = null
 const CLUSTER_ZOOM = 13  // below this zoom → show clusters; at/above → show individual pins
 
@@ -89,7 +92,8 @@ onMounted(async () => {
     attributionControl: false,
     pitchWithRotate: false,
     maxZoom: 18,
-    minZoom: 2,
+    minZoom: 6,
+    maxBounds: [[2.69, 4.24], [14.68, 13.87]], // Nigeria bounds
   })
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
@@ -102,6 +106,7 @@ onMounted(async () => {
     upsertRadiusCircle()
     addClusterLayers()
     renderPins()
+    renderSquarePins()
   })
 
   // Toggle cluster vs individual markers after zoom settles.
@@ -115,6 +120,7 @@ onMounted(async () => {
 onUnmounted(() => {
   map?.remove()
   map = null
+  squareMarkerMap.clear()
 })
 
 // ── Radius circle ─────────────────────────────────────────────────────────────
@@ -369,6 +375,76 @@ watch(() => props.selectedSlug, (slug) => {
     })
   }
 })
+
+// ── Square pins ───────────────────────────────────────────────────────────
+watch(() => props.squares, renderSquarePins, { deep: true })
+
+function renderSquarePins() {
+  if (!map || !maplibregl) return
+
+  const newIds = new Set(props.squares.map((sq) => sq.id))
+
+  // Remove stale
+  for (const [id, { marker }] of squareMarkerMap.entries()) {
+    if (!newIds.has(id)) {
+      marker.remove()
+      squareMarkerMap.delete(id)
+    }
+  }
+
+  // Add new
+  for (const square of props.squares) {
+    if (squareMarkerMap.has(square.id)) continue
+
+    const el = buildSquarePinEl(square)
+    el.addEventListener('click', (e) => {
+      e.stopPropagation()
+      emit('select-square', square)
+    })
+
+    // 'square-pin-marker' className keeps these visible even when pins-hidden is active
+    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom', className: 'square-pin-marker' })
+      .setLngLat([square.longitude, square.latitude])
+      .addTo(map)
+
+    squareMarkerMap.set(square.id, { marker, el })
+  }
+}
+
+function buildSquarePinEl(square: IMapSquare): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.className = 'sq-pin-wrap'
+
+  const accent = square.accentColor || '#f59e0b'
+  const name = square.name.slice(0, 20)
+  const location = [square.city, square.state].filter(Boolean).join(', ')
+  const initials = square.name.slice(0, 2).toUpperCase()
+
+  wrap.innerHTML = `
+    <div class="sq-pulse" style="--sq-color:${accent}"></div>
+    <div class="sq-pin" style="--sq-color:${accent}">
+      ${square.iconUrl
+        ? `<img src="${square.iconUrl}" class="sq-icon-img" alt="" loading="lazy" />`
+        : `<span class="sq-initials">${initials}</span>`
+      }
+      <div class="sq-label">${name}</div>
+    </div>
+    <div class="sq-tip" role="tooltip">
+      <div class="sq-tip-name">${square.name}</div>
+      ${location ? `<div class="sq-tip-loc">📍 ${location}</div>` : ''}
+      <div class="sq-tip-stats">
+        <span>${fmt(square.memberCount)} sellers</span>
+        <span class="tt-dot">·</span>
+        <span>${fmt(square.followerCount)} followers</span>
+      </div>
+      <a href="/squares/${square.slug}" class="sq-tip-visit" onclick="event.stopPropagation()">
+        Explore Square →
+      </a>
+    </div>
+  `
+
+  return wrap
+}
 
 // ── Pin builder ───────────────────────────────────────────────────────────────
 function fmt(n: number) {
@@ -698,10 +774,136 @@ function buildPinEl(seller: IMapSeller): HTMLElement {
 
 /* ── Pin visibility (cluster mode) ───────────────────────────────────────────── */
 /* map.getCanvasContainer() is MapLibre's own container for all markers.
-   One class on it hides every seller marker; user-dot-marker is excluded. */
-.maplibregl-canvas-container.pins-hidden .maplibregl-marker:not(.user-dot-marker) {
+   One class on it hides every seller marker; user-dot-marker and square-pin-marker
+   are excluded — Squares are landmarks, always visible regardless of zoom. */
+.maplibregl-canvas-container.pins-hidden .maplibregl-marker:not(.user-dot-marker):not(.square-pin-marker) {
   display: none !important;
 }
+
+/* ── Square pin ──────────────────────────────────────────────────────────────── */
+.sq-pin-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sq-pulse {
+  position: absolute;
+  top: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 68px; height: 52px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--sq-color) 25%, transparent);
+  animation: sqPulse 3s ease-out infinite;
+  z-index: 0;
+}
+@keyframes sqPulse {
+  0%   { transform: translateX(-50%) scale(0.88); opacity: 0.85; }
+  65%  { transform: translateX(-50%) scale(1.55); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1.55); opacity: 0; }
+}
+
+.sq-pin {
+  position: relative; z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 68px;
+  padding: 7px 6px 5px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 2.5px solid var(--sq-color);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06),
+              0 0 12px color-mix(in srgb, var(--sq-color) 30%, transparent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.sq-pin:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 20px color-mix(in srgb, var(--sq-color) 50%, transparent);
+}
+
+.sq-icon-img {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+.sq-initials {
+  font-size: 12px; font-weight: 900;
+  color: var(--sq-color);
+  font-family: 'Manrope', system-ui, sans-serif;
+  line-height: 1;
+}
+.sq-label {
+  font-size: 9px; font-weight: 800;
+  color: rgba(255,255,255,0.9);
+  text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 58px;
+  font-family: 'Manrope', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Square tooltip ───────────────────────────────────────────────────────────── */
+@media (hover: hover) {
+  .sq-pin-wrap:hover .sq-tip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+}
+.sq-tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: rgba(8, 12, 28, 0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 12px 14px 10px;
+  min-width: 196px;
+  max-width: 240px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 200;
+}
+.sq-tip::after {
+  content: '';
+  position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: rgba(8, 12, 28, 0.98);
+}
+.sq-tip-name {
+  font-size: 12px; font-weight: 800; color: #fff;
+  margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sq-tip-loc {
+  font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sq-tip-stats {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 8px;
+}
+.sq-tip-visit {
+  display: block; width: 100%;
+  text-align: center;
+  background: #f59e0b;
+  color: #000; font-size: 11px; font-weight: 800;
+  border-radius: 8px; padding: 6px 0;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.sq-tip-visit:hover { background: #d97706; }
 
 /* ── MapLibre attribution ─────────────────────────────────────────────────────── */
 .maplibregl-ctrl-attrib {

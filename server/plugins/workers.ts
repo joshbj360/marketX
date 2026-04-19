@@ -11,6 +11,7 @@
 import { startAuditWorker } from '../queues/audit.queue'
 import { startNotificationWorker } from '../queues/notification.queue'
 import { startEmailWorker } from '../queues/email.queue'
+import { startPodReminderCron } from '../queues/pod-reminder.queue'
 
 export default defineNitroPlugin(() => {
   const audit = startAuditWorker()
@@ -30,4 +31,7 @@ export default defineNitroPlugin(() => {
       '[workers] QUEUE_REDIS_URL not set — workers disabled, jobs run inline',
     )
   }
+
+  // POD reminder cron runs regardless of Redis (uses setInterval + inline notifications)
+  startPodReminderCron()
 })

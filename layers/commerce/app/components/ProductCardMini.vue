@@ -152,14 +152,17 @@ const emit = defineEmits<{
   'quick-add': [product: IProduct]
 }>()
 
-import { imgThumb } from '~~/layers/core/app/utils/cloudinary'
+import { imgThumb, videoThumb } from '~~/layers/core/app/utils/cloudinary'
 
 // ── Media ────────────────────────────────────────────────────────────────────
 const coverImage = computed(() => {
-  const images = (props.product.media ?? []).filter(
+  const raw = props.product.media
+  const media = (Array.isArray(raw) ? raw : []).filter(
     (m) => m.type === 'IMAGE' || m.type === 'VIDEO',
   )
-  return imgThumb(images[0]?.url) || null
+  const first = media[0]
+  if (!first) return null
+  return first.type === 'VIDEO' ? videoThumb(first.url) : imgThumb(first.url)
 })
 
 // ── Pricing ──────────────────────────────────────────────────────────────────

@@ -520,6 +520,72 @@
           </div>
         </div>
 
+        <!-- Pay on Delivery -->
+        <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-[14px] font-semibold text-gray-900 dark:text-neutral-100">Pay on Delivery</h2>
+              <p class="mt-0.5 text-[12px] text-gray-400 dark:text-neutral-500">Buyers pay shipping upfront, product amount collected on delivery.</p>
+            </div>
+            <button
+              type="button"
+              @click="form.pod_enabled = !form.pod_enabled"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors"
+              :class="form.pod_enabled ? 'bg-brand' : 'bg-gray-200 dark:bg-neutral-700'"
+            >
+              <span
+                class="inline-block h-4 w-4 translate-x-1 transform rounded-full bg-white shadow transition-transform"
+                :class="form.pod_enabled ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
+          </div>
+
+          <template v-if="form.pod_enabled">
+            <!-- Delivery window -->
+            <div>
+              <label class="mb-1.5 block text-[12px] font-semibold text-gray-600 dark:text-neutral-400">
+                Delivery window (days)
+              </label>
+              <input
+                v-model.number="form.pod_delivery_days"
+                type="number"
+                min="1"
+                max="30"
+                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[13px] text-gray-900 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+              />
+              <p class="mt-0.5 text-[11px] text-gray-400">Buyers will be reminded if delivery takes longer than this.</p>
+            </div>
+
+            <!-- Zone selector -->
+            <div>
+              <label class="mb-1.5 block text-[12px] font-semibold text-gray-600 dark:text-neutral-400">
+                Eligible states (leave empty = all of Nigeria)
+              </label>
+              <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <label
+                  v-for="state in NIGERIAN_STATES"
+                  :key="state"
+                  class="flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] transition"
+                  :class="form.pod_zones.includes(state)
+                    ? 'border-brand bg-brand/5 text-brand dark:bg-brand/10'
+                    : 'border-gray-200 text-gray-600 dark:border-neutral-700 dark:text-neutral-400'"
+                >
+                  <input
+                    type="checkbox"
+                    class="hidden"
+                    :checked="form.pod_zones.includes(state)"
+                    @change="toggleZone(state)"
+                  />
+                  {{ state }}
+                </label>
+              </div>
+              <p v-if="form.pod_zones.length" class="mt-1.5 text-[11px] text-gray-400">
+                {{ form.pod_zones.length }} state(s) selected
+              </p>
+            </div>
+          </template>
+        </div>
+
         <!-- Save -->
         <button
           type="submit"
@@ -543,6 +609,14 @@
 import { useSellerManagement } from '~~/layers/seller/app/composables/useSellerManagement'
 import { useMediaUpload } from '~~/layers/core/app/composables/useMediaUpload'
 import { SUPPORTED_CURRENCIES } from '~~/shared/utils/currency'
+
+const NIGERIAN_STATES = [
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
+  'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT',
+  'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi',
+  'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo',
+  'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+]
 
 const SHIP_FROM_COUNTRIES = [
   { code: 'NG', name: 'Nigeria' },
@@ -604,6 +678,10 @@ const form = reactive({
   state: '',
   locationLabel: '',
   hideLocation: false,
+  // Pay on Delivery
+  pod_enabled: false,
+  pod_zones: [] as string[],
+  pod_delivery_days: 3,
 })
 
 const gettingLocation = ref(false)
@@ -612,10 +690,31 @@ const detectLocation = () => {
   if (!navigator.geolocation) return
   gettingLocation.value = true
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      form.latitude = Math.round(pos.coords.latitude * 1e6) / 1e6
-      form.longitude = Math.round(pos.coords.longitude * 1e6) / 1e6
-      gettingLocation.value = false
+    async (pos) => {
+      const lat = Math.round(pos.coords.latitude * 1e6) / 1e6
+      const lng = Math.round(pos.coords.longitude * 1e6) / 1e6
+      form.latitude = lat
+      form.longitude = lng
+
+      try {
+        const geo = await $fetch<any>(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+        )
+        if (geo?.city && !form.city) form.city = geo.city
+        if (geo?.principalSubdivision && !form.state) {
+          // strip trailing " State" suffix common in Nigerian responses
+          form.state = geo.principalSubdivision.replace(/\s+State$/i, '').trim()
+        }
+        if (!form.locationLabel && geo?.city) {
+          form.locationLabel = geo.principalSubdivision
+            ? `${geo.city}, ${geo.principalSubdivision.replace(/\s+State$/i, '').trim()}`
+            : geo.city
+        }
+      } catch {
+        // coords are still set; city/state just won't be prefilled
+      } finally {
+        gettingLocation.value = false
+      }
     },
     () => {
       gettingLocation.value = false
@@ -650,6 +749,16 @@ const prefillForm = (s: any) => {
   form.state = s.state ?? ''
   form.locationLabel = s.locationLabel ?? ''
   form.hideLocation = s.hideLocation ?? false
+  // Pay on Delivery
+  form.pod_enabled = s.pod_enabled ?? false
+  form.pod_zones = (s.pod_zones as string[]) ?? []
+  form.pod_delivery_days = s.pod_delivery_days ?? 3
+}
+
+const toggleZone = (state: string) => {
+  const idx = form.pod_zones.indexOf(state)
+  if (idx >= 0) form.pod_zones.splice(idx, 1)
+  else form.pod_zones.push(state)
 }
 
 onMounted(async () => {
@@ -726,6 +835,10 @@ const handleSubmit = async () => {
       state: form.state || undefined,
       locationLabel: form.locationLabel || undefined,
       hideLocation: form.hideLocation,
+      // Pay on Delivery
+      pod_enabled: form.pod_enabled,
+      pod_zones: form.pod_zones,
+      pod_delivery_days: form.pod_delivery_days,
     } as any)
     saveSuccess.value = true
     setTimeout(() => {

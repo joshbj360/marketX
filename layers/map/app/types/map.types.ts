@@ -39,3 +39,19 @@ export type MapFilter = 'all' | 'deals' | 'premium' | 'verified'
 
 /** Legacy alias for backwards compat with map.vue */
 export type INearbyStore = IMapSeller
+
+export interface IMapSquare {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  iconUrl: string | null
+  accentColor: string | null
+  latitude: number
+  longitude: number
+  city: string | null
+  state: string | null
+  memberCount: number
+  followerCount: number
+  type: 'GEOGRAPHIC' | 'CATEGORY'
+}

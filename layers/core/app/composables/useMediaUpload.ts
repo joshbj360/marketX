@@ -81,6 +81,39 @@ export const useMediaUpload = () => {
   const uploadError = ref<string | null>(null)
   const progress = ref(0) // 0-100 for current upload
 
+  /** Warn if video is unexpectedly large before upload begins */
+  const videoSizeWarning = ref<string | null>(null)
+
+  /**
+   * Try uploading once; on network failure retry up to `maxRetries` times
+   * with a short back-off. Cloudinary uploads are idempotent via signed
+   * requests so retrying is safe.
+   */
+  const uploadWithRetry = async (
+    file: File,
+    onProgress: (pct: number) => void,
+    maxRetries = 2,
+  ): Promise<ICloudinaryUploadResult> => {
+    let lastError: unknown
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await uploadToCloudinary(file, onProgress)
+      } catch (e: unknown) {
+        lastError = e
+        const isNetworkError =
+          e instanceof TypeError ||
+          (e as any)?.message?.toLowerCase().includes('network') ||
+          (e as any)?.message?.toLowerCase().includes('failed to fetch')
+
+        if (!isNetworkError || attempt === maxRetries) throw e
+
+        // Exponential back-off: 1s, 2s, 4s …
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
+      }
+    }
+    throw lastError
+  }
+
   const uploadMedia = async (
     input: File | { file?: File },
     onProgress?: (pct: number) => void,
@@ -90,15 +123,24 @@ export const useMediaUpload = () => {
 
     isUploading.value = true
     uploadError.value = null
+    videoSizeWarning.value = null
     progress.value = 0
+
+    // Video size warning — helps users on limited data understand what's coming
+    if (file.type.startsWith('video/')) {
+      const mb = file.size / 1024 / 1024
+      if (mb > 100) {
+        videoSizeWarning.value = `Large video (${mb.toFixed(0)} MB) — upload may be slow on mobile data`
+      }
+    }
 
     const id = _nextId++
     _uploads.value.set(id, 0)
 
     try {
-      const toUpload = await compressImage(file)
+      const toUpload = await compressImage(file) // no-op for video, compresses images
 
-      const result = await uploadToCloudinary(toUpload, (pct) => {
+      const result = await uploadWithRetry(toUpload, (pct) => {
         progress.value = pct
         _uploads.value.set(id, pct)
         onProgress?.(pct)
@@ -133,6 +175,7 @@ export const useMediaUpload = () => {
   return {
     isUploading: computed(() => isUploading.value),
     uploadError: computed(() => uploadError.value),
+    videoSizeWarning: computed(() => videoSizeWarning.value),
     progress: computed(() => progress.value),
     uploadMedia,
     resetUpload,

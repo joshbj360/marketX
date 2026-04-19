@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
       message: 'Logged out successfully',
     }
   } catch (error: unknown) {
-    console.error('[Logout API] Error:', error)
+    logger.error('[Logout API] Error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

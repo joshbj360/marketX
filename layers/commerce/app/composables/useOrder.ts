@@ -1,5 +1,6 @@
 import { useOrderApi } from '../services/order.api'
 import { useOrderStore } from '../stores/order.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import type { Order } from '../types/order'
 
 export const useOrder = () => {
@@ -7,6 +8,8 @@ export const useOrder = () => {
   const store = useOrderStore()
 
   const isLoading = computed(() => store.isLoading)
+  const hasFetchedOnce = computed(() => store.hasFetchedOnce)
+  const isInitialLoad = computed(() => store.isInitialLoad)
   const error = computed(() => store.error)
   const orders = computed(() => store.orders)
   const total = computed(() => store.total)
@@ -25,8 +28,7 @@ export const useOrder = () => {
       }
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to fetch orders')
+      store.setError(extractErrorMessage(e, 'Failed to fetch orders'))
       throw e
     } finally {
       store.setLoading(false)
@@ -42,8 +44,7 @@ export const useOrder = () => {
       store.updateOrder(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Order not found')
+      store.setError(extractErrorMessage(e, 'Order not found'))
       throw e
     } finally {
       store.setLoading(false)
@@ -58,8 +59,7 @@ export const useOrder = () => {
       store.updateOrder(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to place order')
+      store.setError(extractErrorMessage(e, 'Failed to place order'))
       throw e
     } finally {
       store.setLoading(false)
@@ -74,8 +74,7 @@ export const useOrder = () => {
       store.updateOrder(result.data)
       return result.data
     } catch (e: unknown) {
-      const error = e as Error
-      store.setError(error.message || 'Failed to cancel order')
+      store.setError(extractErrorMessage(e, 'Failed to cancel order'))
       throw e
     } finally {
       store.setLoading(false)
@@ -84,6 +83,8 @@ export const useOrder = () => {
 
   return {
     isLoading,
+    hasFetchedOnce,
+    isInitialLoad,
     error,
     orders,
     total,

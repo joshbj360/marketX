@@ -38,7 +38,7 @@ export const cartService = {
         resourceId: String(variantId),
         reason: `Added variant ${variantId} x${quantity}`,
       })
-      .catch(() => {})
+      .catch((e: Error) => logger.warn('Audit log failed', { action: 'cart', error: e.message }))
     return item
   },
 
@@ -79,7 +79,7 @@ export const cartService = {
         resourceId: String(variantId),
         reason: `Updated variant ${variantId} to qty ${quantity}`,
       })
-      .catch(() => {})
+      .catch((e: Error) => logger.warn('Audit log failed', { action: 'cart', error: e.message }))
     return item
   },
 
@@ -96,7 +96,7 @@ export const cartService = {
         resourceId: String(variantId),
         reason: `Removed variant ${variantId}`,
       })
-      .catch(() => {})
+      .catch((e: Error) => logger.warn('Audit log failed', { action: 'cart', error: e.message }))
     return result
   },
 
@@ -110,7 +110,7 @@ export const cartService = {
         resourceId: userId,
         reason: 'Cart cleared',
       })
-      .catch(() => {})
+      .catch((e: Error) => logger.warn('Audit log failed', { action: 'cart', error: e.message }))
     return result
   },
 }

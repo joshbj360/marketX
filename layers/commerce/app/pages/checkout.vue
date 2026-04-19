@@ -108,6 +108,24 @@
       </div>
       <!-- ───────────────────────────────────────────────────────────────────── -->
 
+      <div v-else-if="showCartHydrationState" class="py-24">
+        <div class="space-y-4">
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="animate-pulse rounded-2xl border border-gray-100 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <div class="flex gap-3">
+              <div class="h-14 w-14 rounded-xl bg-gray-100 dark:bg-neutral-800" />
+              <div class="flex-1 space-y-2">
+                <div class="h-4 w-3/4 rounded bg-gray-100 dark:bg-neutral-800" />
+                <div class="h-3 w-1/2 rounded bg-gray-100 dark:bg-neutral-800" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Empty cart guard -->
       <div v-else-if="!items.length" class="py-24 text-center">
         <Icon
@@ -656,6 +674,33 @@
               <Icon name="logos:paypal" size="18" />
               PayPal
             </button>
+            <!-- POD — only for Nigerian addresses with a shipping fee -->
+            <button
+              v-if="form.country === 'NG' && shippingCostMajor > 0"
+              type="button"
+              :class="
+                paymentMethod === 'pod'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-neutral-700 dark:text-neutral-400'
+              "
+              class="col-span-2 flex items-center justify-between gap-2 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all"
+              @click="paymentMethod = 'pod'"
+            >
+              <div class="flex items-center gap-2">
+                <Icon name="mdi:cash-multiple" size="18" />
+                Pay on Delivery
+              </div>
+              <span class="text-[11px] font-normal opacity-70">Pay shipping now · product on delivery</span>
+            </button>
+          </div>
+
+          <!-- POD info banner -->
+          <div
+            v-if="paymentMethod === 'pod'"
+            class="mt-2 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-[12px] text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-400"
+          >
+            <Icon name="mdi:information-outline" size="14" class="mt-0.5 shrink-0" />
+            <span>Pay <strong>{{ fmtPNGN(shippingCostMajor) }}</strong> shipping now to confirm your order. Pay the product amount (<strong>{{ fmtPNGN(cartTotal) }}</strong>) in cash when your delivery arrives. Shipping fee is non-refundable if you refuse delivery.</span>
           </div>
         </div>
 
@@ -674,7 +719,9 @@
           :class="
             paymentMethod === 'paypal'
               ? 'bg-[#0070ba] hover:bg-[#005ea6]'
-              : 'bg-brand hover:bg-brand/90'
+              : paymentMethod === 'pod'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-brand hover:bg-brand/90'
           "
           @click="handleCheckout"
         >
@@ -695,6 +742,9 @@
                 }}
                 with PayPal
               </template>
+              <template v-else-if="paymentMethod === 'pod'">
+                Pay {{ fmtPNGN(shippingCostMajor) }} shipping now
+              </template>
               <template v-else>
                 {{
                   activeCurrency === 'NGN'
@@ -703,8 +753,11 @@
                 }}
               </template>
             </span>
+            <span v-if="paymentMethod === 'pod'" class="text-[11px] font-normal opacity-80">
+              + {{ fmtPNGN(cartTotal) }} on delivery
+            </span>
             <span
-              v-if="paymentMethod !== 'paypal' && activeCurrency !== 'NGN'"
+              v-else-if="paymentMethod !== 'paypal' && activeCurrency !== 'NGN'"
               class="text-[11px] font-normal opacity-80"
             >
               Charged as {{ fmtPNGN(grandTotalMajor) }}
@@ -719,7 +772,9 @@
           {{
             paymentMethod === 'paypal'
               ? 'Secured by PayPal · USD payment'
-              : 'Secured by Paystack · Your payment is encrypted'
+              : paymentMethod === 'pod'
+                ? 'Shipping secured by Paystack · Product paid cash on delivery'
+                : 'Secured by Paystack · Your payment is encrypted'
           }}
         </p>
       </div>
@@ -749,6 +804,7 @@ import { notify } from '@kyvg/vue3-notification'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import { useAuthStore } from '~~/layers/core/app/stores/auth.store'
 import { useAuth } from '~~/layers/core/app/composables/useAuth'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import { useCart as useCartComposable } from '~~/layers/commerce/app/composables/useCart'
 
 const { setCheckoutPage } = useSeo()
@@ -780,7 +836,7 @@ const handleSendOtp = async () => {
     otpIsNewUser.value = res.isNewUser
     otpSent.value = true
   } catch (e: any) {
-    authError.value = e?.data?.statusMessage || 'Failed to send code. Try again.'
+    authError.value = extractErrorMessage(e, 'Failed to send code. Try again.')
   } finally {
     authLoading.value = false
   }
@@ -820,14 +876,20 @@ const handleVerifyOtp = async () => {
       notify({ type: 'success', text: 'Account created! A password setup link was sent to your email.' })
     }
   } catch (e: any) {
-    authError.value = e?.data?.statusMessage || 'Invalid or expired code. Try again.'
+    authError.value = extractErrorMessage(
+      e,
+      'Invalid or expired code. Try again.',
+    )
   } finally {
     authLoading.value = false
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { items, cartTotal, fetchCart } = useCart()
+const { items, cartTotal, fetchCart, hasFetchedOnce } = useCart()
+const showCartHydrationState = computed(
+  () => profileStore.isLoggedIn && !showAuthStep.value && !hasFetchedOnce.value,
+)
 const {
   calculation: shippingCalculation,
   calculateShipping,
@@ -851,7 +913,7 @@ const { getStoredRef, clearStoredRef, captureAffiliateRef } = useAffiliate()
 const config = useRuntimeConfig()
 
 const isSubmitting = ref(false)
-const paymentMethod = ref<'paystack' | 'paypal'>('paystack')
+const paymentMethod = ref<'paystack' | 'paypal' | 'pod'>('paystack')
 const checkoutError = ref('')
 const isSaving = ref(false)
 const showSavePanel = ref(false)
@@ -1070,19 +1132,29 @@ const handleCheckout = async () => {
         throw new Error('PayPal did not return an approval URL')
       clearStoredRef()
       window.location.href = result.data.approvalUrl
+    } else if (paymentMethod.value === 'pod') {
+      const callbackUrl = `${config.public.baseURL}/buyer/orders?payment=pod`
+      const result: any = await orderApi.initializePOD({
+        ...orderPayload,
+        callback_url: callbackUrl,
+      })
+      clearStoredRef()
+      window.location.href = result.data.authorizationUrl
     } else {
       const callbackUrl = `${config.public.baseURL}/buyer/orders?payment=success`
       const result: any = await orderApi.initializePayment({
         ...orderPayload,
-        currency: 'NGN', // Always charge in NGN via Paystack
+        currency: 'NGN',
         callback_url: callbackUrl,
       })
       clearStoredRef()
       window.location.href = result.data.authorizationUrl
     }
   } catch (e: any) {
-    checkoutError.value =
-      e.message || 'Failed to initialize payment. Please try again.'
+    checkoutError.value = extractErrorMessage(
+      e,
+      'Failed to initialize payment. Please try again.',
+    )
   } finally {
     isSubmitting.value = false
   }

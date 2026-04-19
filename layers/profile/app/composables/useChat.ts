@@ -3,6 +3,7 @@ import { useChatApi } from '../services/chat.api'
 import { useChatStore } from '../stores/chat.store'
 import { useProfileStore } from '../stores/profile.store'
 import { useAuthStore } from '~~/layers/core/app/stores/auth.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import type { IConversation, IMessage } from '../types/profile.types'
 
 // Normalize a raw server conversation into IConversation with `otherUser`
@@ -46,6 +47,10 @@ export const useChat = () => {
   const authStore = useAuthStore()
 
   const isLoading = computed(() => chatStore.isLoading)
+  const hasFetchedConversations = computed(() => chatStore.hasFetchedConversations)
+  const isInitialConversationLoad = computed(
+    () => chatStore.isInitialConversationLoad,
+  )
   const error = computed(() => chatStore.error)
   const conversations = computed(() => chatStore.conversations)
 
@@ -143,7 +148,9 @@ export const useChat = () => {
       chatStore.setConversations(normalized)
       return normalized
     } catch (err: any) {
-      chatStore.setError(err.message || 'Failed to fetch conversations')
+      chatStore.setError(
+        extractErrorMessage(err, 'Failed to fetch conversations'),
+      )
       throw err
     } finally {
       chatStore.setLoading(false)
@@ -159,7 +166,7 @@ export const useChat = () => {
       chatStore.setConversationMessages(conversationId, msgs)
       return msgs
     } catch (err: any) {
-      chatStore.setError(err.message || 'Failed to fetch messages')
+      chatStore.setError(extractErrorMessage(err, 'Failed to fetch messages'))
       throw err
     } finally {
       chatStore.setLoading(false)
@@ -191,7 +198,7 @@ export const useChat = () => {
       return msg
     } catch (err: any) {
       chatStore.updateMessageStatus(conversationId, tempId, 'failed')
-      chatStore.setError(err.message || 'Failed to send message')
+      chatStore.setError(extractErrorMessage(err, 'Failed to send message'))
       throw err
     }
   }
@@ -207,7 +214,9 @@ export const useChat = () => {
       }
       return normalized
     } catch (err: any) {
-      chatStore.setError(err.message || 'Failed to create conversation')
+      chatStore.setError(
+        extractErrorMessage(err, 'Failed to create conversation'),
+      )
       throw err
     }
   }
@@ -223,13 +232,17 @@ export const useChat = () => {
       }
       return normalized
     } catch (err: any) {
-      chatStore.setError(err.message || 'Failed to create store conversation')
+      chatStore.setError(
+        extractErrorMessage(err, 'Failed to create store conversation'),
+      )
       throw err
     }
   }
 
   return {
     isLoading,
+    hasFetchedConversations,
+    isInitialConversationLoad,
     error,
     conversations,
     connectSocket,

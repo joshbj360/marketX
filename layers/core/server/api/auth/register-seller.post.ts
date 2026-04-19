@@ -120,18 +120,19 @@ export default defineEventHandler(async (event) => {
     })
 
     // ── 5. Issue tokens → auto-login ─────────────────────────────────────────
-    const tokens = generateTokens(user.id, user.email, 'seller')
+    const sessionId = crypto.randomUUID()
+    const tokens = generateTokens(user.id, user.email, 'seller', sessionId)
 
     await prisma.session.create({
       data: {
-        id: crypto.randomUUID(),
+        id: sessionId,
         userId: user.id,
         refreshToken: tokens.refreshToken,
         ipAddress,
         userAgent,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
-    }).catch(() => {}) // non-fatal
+    }).catch((e: Error) => logger.warn('Session create failed after seller registration', { userId: user.id, error: e.message }))
 
     await prisma.auditLog.create({
       data: {
@@ -143,7 +144,7 @@ export default defineEventHandler(async (event) => {
         user_agent: userAgent,
         success: true,
       },
-    }).catch(() => {})
+    }).catch((e: Error) => logger.warn('Audit log failed after seller registration', { userId: user.id, error: e.message }))
 
     // ── 6. Set HTTP-only cookies (same shape as /api/auth/login) ─────────────
     setCookie(event, 'accessToken', tokens.accessToken, {
@@ -188,7 +189,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: error.statusCode, statusMessage: error.message })
     if (error instanceof SellerError)
       throw createError({ statusCode: error.statusCode || 400, statusMessage: error.message })
-    console.error('[register-seller]', error)
+    logger.error('Seller registration failed', { error: error instanceof Error ? error.message : String(error) })
     throw createError({ statusCode: 500, statusMessage: 'Registration failed. Please try again.' })
   }
 })

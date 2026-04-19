@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       data: followingMap,
     }
   } catch (error: unknown) {
-    console.error('Check following batch error:', error)
+    logger.error('Check following batch error:', error)
 
     throw createError({
       statusCode: error.statusCode || 500,

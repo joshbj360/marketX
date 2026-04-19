@@ -7,7 +7,6 @@
     :class="mobileNavVisible ? 'translate-y-0' : '-translate-y-full'"
   >
     <HeaderNavMobile
-      @open-search="showSearchOverlay = true"
       @open-notifications="showNotificationOverlay = true"
       @open-cart="showCart = true"
     />
@@ -61,7 +60,6 @@
     >
       <SideNav
         @create="showCreateModal = true"
-        @open-search="showSearchOverlay = true"
         @open-notifications="showNotificationOverlay = true"
         @open-cart="showCart = true"
       />

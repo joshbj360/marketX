@@ -223,6 +223,7 @@
 <script setup lang="ts">
 import HomeLayout from '~~/layers/feed/app/layouts/HomeLayout.vue'
 import { useOrderApi } from '~~/layers/commerce/app/services/order.api'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import { notify } from '@kyvg/vue3-notification'
 
 definePageMeta({ middleware: 'auth' })
@@ -250,7 +251,7 @@ onMounted(async () => {
     const res: any = await orderApi.getOrderById(orderId.value)
     order.value = res?.data
   } catch (e: any) {
-    error.value = e.message || 'Order not found'
+    error.value = extractErrorMessage(e, 'Order not found')
   } finally {
     isLoading.value = false
   }
@@ -264,7 +265,7 @@ const handleCancel = async () => {
     order.value = res?.data
     notify({ type: 'success', text: 'Order cancelled' })
   } catch (e: any) {
-    notify({ type: 'error', text: e.message || 'Could not cancel order' })
+    notify({ type: 'error', text: extractErrorMessage(e, 'Could not cancel order') })
   } finally {
     cancelling.value = false
   }

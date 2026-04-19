@@ -1,5 +1,6 @@
 <template>
   <Teleport to="body">
+    <SaveStatusOverlay :saving="isSaving" saving-text="Saving post…" />
     <div
       v-if="post"
       class="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -13,18 +14,20 @@
           class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-neutral-800"
         >
           <button
-            @click="$emit('close')"
             class="rounded-full p-1.5 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-neutral-200"
+            @click="$emit('close')"
           >
             <Icon name="mdi:close" size="20" />
           </button>
-          <h2 class="text-[15px] font-semibold text-gray-900 dark:text-neutral-100">
+          <h2
+            class="text-[15px] font-semibold text-gray-900 dark:text-neutral-100"
+          >
             Edit Post
           </h2>
           <button
-            @click="handleSave"
             :disabled="isSaving || !isDirty"
             class="text-[14px] font-semibold text-brand transition-opacity disabled:opacity-40"
+            @click="handleSave"
           >
             {{ isSaving ? 'Saving…' : 'Save' }}
           </button>
@@ -33,10 +36,11 @@
         <!-- Body -->
         <div class="max-h-[75vh] overflow-y-auto">
           <div class="space-y-4 p-4">
-
             <!-- ── Media strip ── -->
             <div v-if="hasAnyMedia">
-              <p class="mb-2 text-[12px] font-medium text-gray-500 dark:text-neutral-400">
+              <p
+                class="mb-2 text-[12px] font-medium text-gray-500 dark:text-neutral-400"
+              >
                 Media
               </p>
               <div class="flex gap-2 overflow-x-auto pb-1">
@@ -51,15 +55,11 @@
                     :src="videoThumb(m.url)"
                     class="h-full w-full object-cover"
                   />
-                  <img
-                    v-else
-                    :src="m.url"
-                    class="h-full w-full object-cover"
-                  />
+                  <img v-else :src="m.url" class="h-full w-full object-cover" />
                   <button
                     type="button"
-                    @click="removeExisting(m.id)"
                     class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    @click="removeExisting(m.id)"
                   >
                     <Icon name="mdi:close" size="11" />
                   </button>
@@ -77,24 +77,43 @@
                     v-if="item.uploading"
                     class="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55"
                   >
-                    <svg width="32" height="32" viewBox="0 0 32 32" class="-rotate-90">
-                      <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2.5" />
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 32 32"
+                      class="-rotate-90"
+                    >
                       <circle
-                        cx="16" cy="16" r="12" fill="none" stroke="#F43F5E" stroke-width="2.5"
+                        cx="16"
+                        cy="16"
+                        r="12"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.2)"
+                        stroke-width="2.5"
+                      />
+                      <circle
+                        cx="16"
+                        cy="16"
+                        r="12"
+                        fill="none"
+                        stroke="#F43F5E"
+                        stroke-width="2.5"
                         stroke-linecap="round"
                         :stroke-dasharray="`${2 * Math.PI * 12}`"
                         :stroke-dashoffset="`${2 * Math.PI * 12 * (1 - item.progress / 100)}`"
                         style="transition: stroke-dashoffset 0.15s ease"
                       />
                     </svg>
-                    <span class="text-[10px] font-bold text-white">{{ item.progress }}%</span>
+                    <span class="text-[10px] font-bold text-white"
+                      >{{ item.progress }}%</span
+                    >
                   </div>
                   <!-- Remove button (only when not uploading) -->
                   <button
                     v-else
                     type="button"
-                    @click="removeNew(i)"
                     class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    @click="removeNew(i)"
                   >
                     <Icon name="mdi:close" size="11" />
                   </button>
@@ -105,8 +124,14 @@
                   v-if="keepMedia.length + newMedia.length < 10"
                   class="flex h-20 w-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-brand hover:bg-brand/5 dark:border-neutral-600"
                 >
-                  <Icon name="mdi:image-plus" size="20" class="text-gray-400 dark:text-neutral-500" />
-                  <span class="text-[10px] text-gray-400 dark:text-neutral-500">Add</span>
+                  <Icon
+                    name="mdi:image-plus"
+                    size="20"
+                    class="text-gray-400 dark:text-neutral-500"
+                  />
+                  <span class="text-[10px] text-gray-400 dark:text-neutral-500"
+                    >Add</span
+                  >
                   <input
                     type="file"
                     accept="image/*,video/*"
@@ -133,7 +158,9 @@
 
             <!-- Visibility -->
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-gray-500 dark:text-neutral-400">
+              <label
+                class="mb-1.5 block text-[12px] font-medium text-gray-500 dark:text-neutral-400"
+              >
                 Who can see this?
               </label>
               <select
@@ -145,7 +172,6 @@
                 <option value="PRIVATE">Only me</option>
               </select>
             </div>
-
           </div>
         </div>
       </div>
@@ -159,6 +185,7 @@ import { useMediaUpload } from '~~/layers/core/app/composables/useMediaUpload'
 import { videoThumb } from '~~/layers/core/app/utils/cloudinary'
 import { notify } from '@kyvg/vue3-notification'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
+import SaveStatusOverlay from '~~/layers/core/app/components/SaveStatusOverlay.vue'
 
 const props = defineProps<{ post: IFeedItem | null }>()
 const emit = defineEmits<{
@@ -190,7 +217,10 @@ const newMedia = ref<NewMediaItem[]>([])
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const hasAnyMedia = computed(
-  () => keepMedia.value.length > 0 || newMedia.value.length > 0 || (props.post?.mediaItems?.length ?? 0) > 0,
+  () =>
+    keepMedia.value.length > 0 ||
+    newMedia.value.length > 0 ||
+    (props.post?.mediaItems?.length ?? 0) > 0,
 )
 
 // ── populate on open ──────────────────────────────────────────────────────────
@@ -203,9 +233,13 @@ watch(
 
     const items: Array<{ id: string; url: string; type: string }> = []
     if (p.mediaItems?.length) {
-      p.mediaItems.forEach((m: any) => items.push({ id: m.id, url: m.url, type: m.type ?? 'IMAGE' }))
+      p.mediaItems.forEach((m: any) =>
+        items.push({ id: m.id, url: m.url, type: m.type ?? 'IMAGE' }),
+      )
     } else if (Array.isArray((p as any).media)) {
-      ;(p as any).media.forEach((m: any) => items.push({ id: m.id, url: m.url, type: m.type ?? 'IMAGE' }))
+      ;(p as any).media.forEach((m: any) =>
+        items.push({ id: m.id, url: m.url, type: m.type ?? 'IMAGE' }),
+      )
     }
     keepMedia.value = items
     removedIds.value = []
@@ -246,7 +280,13 @@ const onFilesSelected = async (e: Event) => {
   for (const file of files) {
     if (keepMedia.value.length + newMedia.value.length >= 10) break
     const preview = URL.createObjectURL(file)
-    newMedia.value.push({ preview, file, uploading: true, progress: 0, result: null })
+    newMedia.value.push({
+      preview,
+      file,
+      uploading: true,
+      progress: 0,
+      result: null,
+    })
     const idx = newMedia.value.length - 1
 
     try {
@@ -254,7 +294,11 @@ const onFilesSelected = async (e: Event) => {
         if (newMedia.value[idx]) newMedia.value[idx].progress = pct
       })
       if (newMedia.value[idx]) {
-        newMedia.value[idx].result = { url: res.url, public_id: res.public_id, type: res.type }
+        newMedia.value[idx].result = {
+          url: res.url,
+          public_id: res.public_id,
+          type: res.type,
+        }
         newMedia.value[idx].uploading = false
       }
     } catch {
@@ -265,7 +309,8 @@ const onFilesSelected = async (e: Event) => {
 
 // ── save ──────────────────────────────────────────────────────────────────────
 const handleSave = async () => {
-  if (!props.post || !isDirty.value || isSaving.value || anyUploading.value) return
+  if (!props.post || !isDirty.value || isSaving.value || anyUploading.value)
+    return
   isSaving.value = true
 
   try {

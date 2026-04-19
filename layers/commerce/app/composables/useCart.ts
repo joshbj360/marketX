@@ -1,6 +1,7 @@
 import { notify } from '@kyvg/vue3-notification'
 import { useCartApi } from '../services/cart.api'
 import { useCartStore } from '../stores/cart.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import type { ICartItem } from '../types/commerce.types'
 import type { CartItem } from '../types/cart'
@@ -11,6 +12,8 @@ export const useCart = () => {
   const profileStore = useProfileStore()
 
   const isLoading = computed(() => store.isLoading)
+  const hasFetchedOnce = computed(() => store.hasFetchedOnce)
+  const isInitialLoad = computed(() => store.isInitialLoad)
   const error = computed(() => store.error)
   const cartCount = computed(() => store.cartCount)
   const cartTotal = computed(() => store.cartTotal)
@@ -26,8 +29,7 @@ export const useCart = () => {
       store.setItems(result.data?.items || [])
       return result.data
     } catch (e: unknown) {
-      const err = e as Error
-      store.setError(err.message || 'Failed to fetch cart')
+      store.setError(extractErrorMessage(e, 'Failed to fetch cart'))
       throw e
     } finally {
       store.setLoading(false)
@@ -70,9 +72,9 @@ export const useCart = () => {
       store.addItem(result.data as ICartItem)
       return result.data
     } catch (e: unknown) {
-      const err = e as Error
-      store.setError(err.message || 'Failed to add to cart')
-      notify({ type: 'error', text: err.message || 'Failed to add to cart' })
+      const message = extractErrorMessage(e, 'Failed to add to cart')
+      store.setError(message)
+      notify({ type: 'error', text: message })
       throw e
     } finally {
       store.setLoading(false)
@@ -88,10 +90,10 @@ export const useCart = () => {
       const result: { data: CartItem } = await api.updateQuantity(variantId, quantity)
       return result.data
     } catch (e: unknown) {
-      const err = e as Error
       await fetchCart()
-      store.setError(err.message || 'Failed to update cart')
-      notify({ type: 'error', text: err.message || 'Failed to update cart' })
+      const message = extractErrorMessage(e, 'Failed to update cart')
+      store.setError(message)
+      notify({ type: 'error', text: message })
       throw e
     }
   }
@@ -104,10 +106,10 @@ export const useCart = () => {
     try {
       await api.removeFromCart(variantId)
     } catch (e: unknown) {
-      const err = e as Error
       await fetchCart()
-      store.setError(err.message || 'Failed to remove from cart')
-      notify({ type: 'error', text: err.message || 'Failed to remove from cart' })
+      const message = extractErrorMessage(e, 'Failed to remove from cart')
+      store.setError(message)
+      notify({ type: 'error', text: message })
       throw e
     }
   }
@@ -125,6 +127,8 @@ export const useCart = () => {
 
   return {
     isLoading,
+    hasFetchedOnce,
+    isInitialLoad,
     error,
     cartCount,
     cartTotal,

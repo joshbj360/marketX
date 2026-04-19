@@ -1149,20 +1149,618 @@ async function main() {
 
   console.log('✅ Social proof (likes & comments)')
 
+  // ── 8. Electronics & Gadgets category ────────────────────────────────────
+  await prisma.category.upsert({
+    where: { slug: 'electronics' },
+    update: {},
+    create: { name: 'Electronics & Gadgets', slug: 'electronics', thumbnailCatUrl: IMGS.beauty3 },
+  })
+  const EL = (await prisma.category.findUnique({ where: { slug: 'electronics' } }))!.id
+  // Also refresh catMap with EL
+  const catMapFull = { ...catMap, electronics: EL }
+
+  // ── 9. New seller profiles ────────────────────────────────────────────────
+  const SQ_PROFILES = [
+    { email: 'hamaz@peppr.test',   username: 'hamaz_crafts',    avatar: IMGS.av2,  bio: 'Plateau artisan crafts 🏔️ Tin sculptures, gemstones, Jos-made leather | Ship nationwide' },
+    { email: 'yola@peppr.test',    username: 'yola_leather',    avatar: IMGS.av6,  bio: 'Adamawa leatherwork & Fulani crafts 🐪 Handmade in Yola since 2008' },
+    { email: 'balogun@peppr.test', username: 'balogun_fabrics', avatar: IMGS.av10, bio: 'Lagos Island fabric trader 🧵 Ankara, Swiss lace, George — wholesale & retail | Balogun Market' },
+    { email: 'cvtech@peppr.test',  username: 'cv_accessories',  avatar: IMGS.av7,  bio: 'Genuine tech accessories at CV prices 📱 Chargers · earbuds · power banks · ships everywhere' },
+    { email: 'bodija@peppr.test',  username: 'bodija_roots',    avatar: IMGS.av9,  bio: 'Yoruba roots & crafts from Bodija 🌿 Adire fabric, traditional goods, local artisans' },
+    { email: 'wuse@peppr.test',    username: 'wuse_fashion',    avatar: IMGS.av4,  bio: 'Abuja fashion district 🏙️ Ready-to-wear & custom designs | Wuse II, Abuja' },
+  ]
+
+  const sqProfiles: Record<string, any> = {}
+  for (const p of SQ_PROFILES) {
+    const existing = await prisma.profile.findUnique({ where: { email: p.email } })
+    if (existing) { sqProfiles[p.username] = existing; continue }
+    sqProfiles[p.username] = await prisma.profile.create({
+      data: { id: uuid(), email: p.email, username: p.username, password_hash: pwHash,
+              avatar: p.avatar, bio: p.bio, email_verified: true, email_verified_at: new Date() },
+    })
+  }
+
+  // ── 10. New seller store profiles ──────────────────────────────────────────
+  const SQ_SELLERS_DATA = [
+    { pk: 'hamaz_crafts',    slug: 'hamaz-crafts',        name: 'Hamaz Crafts & Heritage',    logo: IMGS.jewel2, banner: IMGS.ankara4, verified: false,
+      desc: 'Authentic Plateau State artisan crafts. Tin sculptures, gemstone jewelry, traditional baskets, and Jos-made leather goods.' },
+    { pk: 'yola_leather',    slug: 'yola-leather-co',     name: 'Yola Leather Co.',           logo: IMGS.bag2,   banner: IMGS.bag1,    verified: false,
+      desc: 'Premium Adamawa leatherwork. Hand-tooled bags, sandals, and Fulani traditional crafts from the northeast.' },
+    { pk: 'balogun_fabrics', slug: 'balogun-fabrics',     name: 'Balogun Fabrics',            logo: IMGS.ankara1, banner: IMGS.ankara2, verified: true,
+      desc: "Lagos Island's premier fabric trader. Ankara prints, Swiss voile lace, George wrappers. 30+ years in Balogun Market." },
+    { pk: 'cv_accessories',  slug: 'cv-accessories-hub',  name: 'CV Accessories Hub',         logo: IMGS.beauty3, banner: IMGS.beauty2, verified: false,
+      desc: 'Genuine tech accessories at Computer Village prices. Chargers, earbuds, power banks, phone cases shipped nationwide.' },
+    { pk: 'bodija_roots',    slug: 'bodija-roots',        name: 'Bodija Roots & Crafts',      logo: IMGS.ankara4, banner: IMGS.ankara3, verified: false,
+      desc: 'Traditional Yoruba goods from Bodija Market, Ibadan. Adire fabric, Ose Dudu soap, Yoruba crafts and local artisan items.' },
+    { pk: 'wuse_fashion',    slug: 'wuse-fashion-abuja',  name: 'Wuse Fashion Abuja',         logo: IMGS.dress1,  banner: IMGS.dress3,  verified: true,
+      desc: 'Abuja\'s trendy fashion district. Smart casuals, office wear, Ankara fusion, and accessories for the FCT crowd.' },
+  ]
+
+  const sqSellers: Record<string, any> = {}
+  for (const s of SQ_SELLERS_DATA) {
+    const prof = sqProfiles[s.pk]
+    const existing = await prisma.sellerProfile.findUnique({ where: { store_slug: s.slug } })
+    if (existing) { sqSellers[s.slug] = existing; continue }
+    sqSellers[s.slug] = await prisma.sellerProfile.create({
+      data: {
+        profileId: prof.id, store_slug: s.slug, store_name: s.name,
+        store_description: s.desc, store_logo: s.logo, store_banner: s.banner,
+        is_verified: s.verified, is_active: true,
+        verification_status: s.verified ? 'VERIFIED' : 'PENDING',
+        default_currency: 'NGN',
+        followers_count: Math.floor(Math.random() * 1500) + 100,
+      },
+    })
+  }
+  console.log('✅ Square seller profiles (6)')
+
+  // ── 11. Products for new Square sellers ────────────────────────────────────
+  const makeSqProduct = async (data: {
+    title: string; slug: string; description: string; price: number
+    discount?: number; isFeatured?: boolean; isThrift?: boolean
+    affiliateCommission?: number; categoryIds: number[]; images: string[]
+    variants: { size: string; stock: number; price?: number }[]
+    sellerSlug: string
+  }) => {
+    if (await prisma.products.findUnique({ where: { slug: data.slug } })) return null
+    const seller = sqSellers[data.sellerSlug]
+    const profKey = SQ_SELLERS_DATA.find(s => s.slug === data.sellerSlug)!.pk
+    const prof = sqProfiles[profKey]
+    return prisma.products.create({
+      data: {
+        title: data.title, slug: data.slug, description: data.description,
+        price: data.price, discount: data.discount ?? 0,
+        status: 'PUBLISHED' as any, isFeatured: data.isFeatured ?? false,
+        isThrift: data.isThrift ?? false, showInFeed: true,
+        affiliateCommission: data.affiliateCommission,
+        bannerImageUrl: data.images[0],
+        sellerId: seller.id, store_slug: seller.store_slug,
+        variants: { create: data.variants },
+        media: { create: data.images.map((url, i) => ({ url, public_id: `seed/${data.slug}-img${i}`, type: 'IMAGE', isBgMusic: false, authorId: prof.id })) },
+        category: { create: data.categoryIds.map(categoryId => ({ categoryId })) },
+      },
+    })
+  }
+
+  const sqProds: any[] = []
+
+  // ── HAMAZ CRAFTS (Jos, Plateau) ────────────────────────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: 'Plateau Tin Art Sculpture',
+    slug: 'plateau-tin-art-sculpture',
+    description: 'Hand-crafted tin sculpture by Plateau State artisans — a nod to Jos\'s historical tin mining legacy. Each piece is unique, depicting traditional Berom or Ngas motifs. Makes an exceptional décor piece or gift. Dimensions: ~25cm tall.',
+    price: 48000, isFeatured: true, affiliateCommission: 4500,
+    categoryIds: [catMapFull['nigerian-heritage'], catMapFull['home-living']],
+    images: [IMGS.jewel3, IMGS.jewel2, IMGS.bag2],
+    sellerSlug: 'hamaz-crafts',
+    variants: [{ size: 'Standard', stock: 12 }, { size: 'Large (40cm)', stock: 6, price: 75000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Jos Plateau Gemstone Necklace',
+    slug: 'jos-plateau-gemstone-necklace',
+    description: 'Hand-set necklace featuring semi-precious gemstones mined in Plateau State — tourmaline, aquamarine, and quartz. Sterling silver setting. Each stone is hand-polished by Jos artisans. Certificate of authenticity included.',
+    price: 22000, affiliateCommission: 2000,
+    categoryIds: [catMapFull['jewelry-watches'], catMapFull['nigerian-heritage']],
+    images: [IMGS.jewel1, IMGS.jewel2, IMGS.jewel3],
+    sellerSlug: 'hamaz-crafts',
+    variants: [{ size: 'One Size', stock: 20 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Traditional Ngas Hand-Woven Basket',
+    slug: 'ngas-hand-woven-basket',
+    description: 'Large hand-woven storage basket made by Ngas women weavers from Plateau State. Uses local raffia and natural dyes. Multi-purpose: market basket, laundry storage, or décor. Fair-trade certified. Approximately 45cm diameter.',
+    price: 9500, affiliateCommission: 800,
+    categoryIds: [catMapFull['home-living'], catMapFull['nigerian-heritage']],
+    images: [IMGS.bag3, IMGS.bag1, IMGS.ankara4],
+    sellerSlug: 'hamaz-crafts',
+    variants: [{ size: 'Medium (35cm)', stock: 25, price: 7000 }, { size: 'Large (45cm)', stock: 20 }, { size: 'XL (55cm)', stock: 10, price: 14000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Jos Handmade Leather Brogues',
+    slug: 'jos-handmade-leather-brogues',
+    description: 'Classic Oxford brogues hand-stitched by Jos cobblers using locally sourced cow leather. Plateau State has a thriving leather craft tradition passed down for generations. Full leather upper and sole. Made to last 10+ years.',
+    price: 28000, isFeatured: true, affiliateCommission: 2500,
+    categoryIds: [catMapFull['footwear'], catMapFull['nigerian-heritage']],
+    images: [IMGS.shoe4, IMGS.shoe2, IMGS.shoe3],
+    sellerSlug: 'hamaz-crafts',
+    variants: [{ size: '40', stock: 4 }, { size: '41', stock: 6 }, { size: '42', stock: 7 }, { size: '43', stock: 5 }, { size: '44', stock: 3 }],
+  }))
+
+  // ── YOLA LEATHER CO (Yola, Adamawa) ───────────────────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: 'Fulani Embroidered Leather Satchel',
+    slug: 'fulani-embroidered-leather-satchel',
+    description: 'Hand-tooled leather satchel with traditional Fulani geometric embroidery. Full-grain cow leather tanned using centuries-old techniques in Adamawa. Brass fittings, interior zip pocket, shoulder strap included. Iconic northeast Nigerian craftsmanship.',
+    price: 32000, isFeatured: true, affiliateCommission: 3000,
+    categoryIds: [catMapFull['bags-luggage'], catMapFull['nigerian-heritage']],
+    images: [IMGS.bag1, IMGS.bag2, IMGS.bag3],
+    sellerSlug: 'yola-leather-co',
+    variants: [{ size: 'One Size', stock: 18 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Adamawa Hand-Tooled Sandals',
+    slug: 'adamawa-hand-tooled-sandals',
+    description: 'Traditional Adamawa-style leather sandals with intricate hand-tooled floral patterns. Made to order by master craftsmen in Yola. Double-layer sole for durability. Available in natural tan or dyed black.',
+    price: 19500, affiliateCommission: 1800,
+    categoryIds: [catMapFull['footwear'], catMapFull['nigerian-heritage']],
+    images: [IMGS.shoe2, IMGS.shoe4],
+    sellerSlug: 'yola-leather-co',
+    variants: [{ size: '37', stock: 5 }, { size: '38', stock: 7 }, { size: '39', stock: 9 }, { size: '40', stock: 8 }, { size: '41', stock: 6 }, { size: '42', stock: 4 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Fulani Calabash Decorative Bowl',
+    slug: 'fulani-calabash-decorative-bowl',
+    description: 'Beautifully engraved calabash bowl crafted by Fulani artisans in Adamawa. Hand-carved with geometric patterns and stained with natural pigments. Used traditionally for milk and honey — now a stunning home décor piece. Approximately 30cm diameter.',
+    price: 7500, affiliateCommission: 600,
+    categoryIds: [catMapFull['home-living'], catMapFull['nigerian-heritage']],
+    images: [IMGS.bag3, IMGS.jewel3],
+    sellerSlug: 'yola-leather-co',
+    variants: [{ size: 'Small (20cm)', stock: 15, price: 4500 }, { size: 'Medium (30cm)', stock: 20 }, { size: 'Large (40cm)', stock: 10, price: 12000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Traditional Hausa Babban Riga',
+    slug: 'traditional-hausa-babban-riga',
+    description: 'Grand ceremonial Babban Riga (wide-sleeved robe) in fine cotton with hand-embroidered collar and cuffs (zari goldwork). Tailored by master tailors in Yola. Comes with matching Hula cap. A statement piece for Sallah, chieftaincy, and state events.',
+    price: 68000, isFeatured: true, affiliateCommission: 6000,
+    categoryIds: [catMapFull['mens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.men1, IMGS.men2, IMGS.men4],
+    sellerSlug: 'yola-leather-co',
+    variants: [{ size: 'M', stock: 4 }, { size: 'L', stock: 6 }, { size: 'XL', stock: 5 }, { size: 'XXL', stock: 3 }],
+  }))
+
+  // ── BALOGUN FABRICS (Balogun Market, Lagos Island) ─────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: 'Premium Dutch Wax Ankara Print (6 yards)',
+    slug: 'dutch-wax-ankara-6yards',
+    description: 'Genuine Dutch Wax Hollandais Ankara print fabric — 6 yards. 100% cotton, vibrant colour-fast print. Sourced directly from Balogun Market, Lagos Island. Suitable for iro, skirts, shirts, dresses. Comes pre-washed and pressed.',
+    price: 12500, affiliateCommission: 1000,
+    categoryIds: [catMapFull['nigerian-heritage'], catMapFull['womens-fashion']],
+    images: [IMGS.ankara1, IMGS.ankara2, IMGS.ankara3],
+    sellerSlug: 'balogun-fabrics',
+    variants: [{ size: '6 yards', stock: 50 }, { size: '12 yards (bulk)', stock: 20, price: 22000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Swiss Voile Lace Fabric (5 yards)',
+    slug: 'swiss-voile-lace-5yards',
+    description: 'High-grade Swiss voile lace — the choice of Lagos socialites and Abuja brides. Delicate open-weave lace with intricate floral embroidery. 5-yard piece. Available in ivory, champagne, dusty rose, and royal blue. Perfect for asoebi sets.',
+    price: 42000, isFeatured: true, affiliateCommission: 4000,
+    categoryIds: [catMapFull['womens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.dress2, IMGS.dress4, IMGS.ankara4],
+    sellerSlug: 'balogun-fabrics',
+    variants: [
+      { size: '5 yards — Ivory', stock: 12 },
+      { size: '5 yards — Champagne', stock: 10 },
+      { size: '5 yards — Dusty Rose', stock: 8 },
+      { size: '5 yards — Royal Blue', stock: 8 },
+    ],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'George Wrapper & Blouse Fabric Set',
+    slug: 'george-wrapper-blouse-set',
+    description: 'Classic Indian George wrapper set — 5 yards wrapper + 2 yards blouse fabric. Satin finish, heavy-weight. The standard fabric for Igbo traditional ceremonies, Delta State events, and Port Harcourt owambe. Comes with matching net headtie.',
+    price: 55000, isFeatured: true, affiliateCommission: 5000,
+    categoryIds: [catMapFull['womens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.ankara3, IMGS.dress1, IMGS.dress5],
+    sellerSlug: 'balogun-fabrics',
+    variants: [
+      { size: 'Gold/Champagne', stock: 8 },
+      { size: 'Red/Wine', stock: 6 },
+      { size: 'Green/Olive', stock: 5 },
+      { size: 'Navy/Silver', stock: 5 },
+    ],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Aso-Oke Woven Headtie (Gele) — Iseyin',
+    slug: 'asoke-gele-iseyin-woven',
+    description: 'Hand-woven Aso-oke gele sourced directly from Iseyin weavers, Oyo State. One full head-tie piece (approximately 2.5 metres). Available in gold metallic, silver, deep purple, and burnt orange. Price is per piece.',
+    price: 18000, affiliateCommission: 1500,
+    categoryIds: [catMapFull['womens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.ankara1, IMGS.ankara4],
+    sellerSlug: 'balogun-fabrics',
+    variants: [
+      { size: 'Gold Metallic', stock: 15 },
+      { size: 'Silver', stock: 12 },
+      { size: 'Deep Purple', stock: 10 },
+      { size: 'Burnt Orange', stock: 10 },
+    ],
+  }))
+
+  // ── CV ACCESSORIES HUB (Computer Village, Ikeja) ───────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: '65W GaN Fast Charger (USB-C + USB-A)',
+    slug: 'gan-65w-fast-charger',
+    description: 'Genuine 65W GaN (Gallium Nitride) compact wall charger. Dual-port: USB-C Power Delivery + USB-A Quick Charge 3.0. Charges MacBook, iPhone, Samsung, and most laptops. NAFDAC and CE certified. Fold-flat pins. 18-month warranty.',
+    price: 12500, affiliateCommission: 1000,
+    categoryIds: [catMapFull['electronics'], catMapFull['accessories']],
+    images: [IMGS.beauty1, IMGS.beauty2, IMGS.beauty3],
+    sellerSlug: 'cv-accessories-hub',
+    variants: [{ size: 'UK Plug', stock: 35 }, { size: 'EU Plug', stock: 15 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'True Wireless Earbuds (ANC)',
+    slug: 'true-wireless-earbuds-anc',
+    description: 'True wireless stereo earbuds with Active Noise Cancellation. 8-hour battery + 24h charging case. IPX4 sweat resistance. Touch controls. Compatible with iOS and Android. Great for Lagos traffic, office, and gym sessions.',
+    price: 18500, isFeatured: true, affiliateCommission: 1600,
+    categoryIds: [catMapFull['electronics'], catMapFull['accessories']],
+    images: [IMGS.beauty2, IMGS.beauty1],
+    sellerSlug: 'cv-accessories-hub',
+    variants: [{ size: 'Black', stock: 25 }, { size: 'White', stock: 20 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: '20,000mAh Slim Power Bank (PD 22.5W)',
+    slug: 'slim-powerbank-20000mah',
+    description: '20,000mAh ultra-slim power bank with 22.5W Power Delivery fast charge. Dual USB-A + USB-C output. LED battery indicator. Weighs only 380g. Charges iPhone 3x, Android 2.5x. Airline-compliant. 12-month warranty. Tested before dispatch.',
+    price: 22000, affiliateCommission: 2000,
+    categoryIds: [catMapFull['electronics'], catMapFull['accessories']],
+    images: [IMGS.beauty3, IMGS.beauty2, IMGS.beauty1],
+    sellerSlug: 'cv-accessories-hub',
+    variants: [{ size: 'Black', stock: 30 }, { size: 'White', stock: 20 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Premium Phone Case Bundle (10 designs)',
+    slug: 'phone-case-bundle-10pack',
+    description: 'Bundle of 10 assorted premium phone cases. Includes shockproof, clear, and aesthetic designs. Compatible with iPhone 13–15, Samsung S21–S24. Nigerian-made packaging. Ideal for retailers and resellers. Mix of Ankara-print, plain, and minimalist designs.',
+    price: 8500, affiliateCommission: 700,
+    categoryIds: [catMapFull['electronics'], catMapFull['accessories']],
+    images: [IMGS.beauty1, IMGS.beauty3],
+    sellerSlug: 'cv-accessories-hub',
+    variants: [{ size: 'iPhone 13/14/15', stock: 20 }, { size: 'Samsung S21-S23', stock: 20 }, { size: 'Samsung S24', stock: 15 }],
+  }))
+
+  // ── BODIJA ROOTS (Bodija Market, Ibadan) ───────────────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: 'Ibadan Adire Eleko Fabric (3 yards)',
+    slug: 'ibadan-adire-eleko-3yards',
+    description: 'Authentic Adire Eleko (cassava paste resist-dyed) fabric from Ibadan artisans. 3 yards of 100% cotton, indigo-dyed fabric with traditional Ibadan patterns — olokun, ibadandun, and ayouma designs. Each piece is one-of-a-kind. Hand-wash cold.',
+    price: 8500, isFeatured: true, affiliateCommission: 700,
+    categoryIds: [catMapFull['nigerian-heritage'], catMapFull['womens-fashion']],
+    images: [IMGS.ankara2, IMGS.ankara4, IMGS.ankara1],
+    sellerSlug: 'bodija-roots',
+    variants: [{ size: '3 yards', stock: 30 }, { size: '6 yards', stock: 15, price: 16000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Pure Shea Butter Soap (Ose Adi)',
+    slug: 'pure-shea-butter-soap-ose-adi',
+    description: 'Traditional Yoruba shea butter soap (Ose Adi) from Bodija cooperatives. Made with raw shea butter, cocoa pod ash, and palm kernel oil. No synthetic additives. Deeply moisturising — suitable for all skin types including eczema-prone. 200g bar.',
+    price: 2200, affiliateCommission: 180,
+    categoryIds: [catMapFull['beauty-care'], catMapFull['nigerian-heritage']],
+    images: [IMGS.beauty2, IMGS.beauty1],
+    sellerSlug: 'bodija-roots',
+    variants: [{ size: '200g bar', stock: 80 }, { size: '3-bar gift set', stock: 30, price: 6000 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Yoruba Oja Baby Carrier Cloth',
+    slug: 'yoruba-oja-baby-carrier',
+    description: 'Traditional Yoruba Oja — a long multi-purpose cloth used by Yoruba mothers for baby-carrying and as a wrapper. Made from 100% cotton stretch-weave. 3.5 metres long, 60cm wide. Can also be used as a travel wrap or light blanket. One size fits all.',
+    price: 11500, affiliateCommission: 1000,
+    categoryIds: [catMapFull['kids-baby'], catMapFull['nigerian-heritage']],
+    images: [IMGS.ankara3, IMGS.dress5],
+    sellerSlug: 'bodija-roots',
+    variants: [{ size: 'One Size', stock: 25 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Ibadan Locust Bean Seasoning (Iru) Pack',
+    slug: 'ibadan-locust-bean-iru-pack',
+    description: 'Sun-dried fermented locust beans (Iru/Dawadawa) packed in Bodija Market, Ibadan. 100% natural — no preservatives. Deep umami flavour for soups, stews, and sauces. Sealed in airtight food-grade packs. 200g per pack. Shelf life: 12 months.',
+    price: 1800, affiliateCommission: 150,
+    categoryIds: [catMapFull['home-living'], catMapFull['nigerian-heritage']],
+    images: [IMGS.beauty3, IMGS.beauty1],
+    sellerSlug: 'bodija-roots',
+    variants: [{ size: '200g', stock: 100 }, { size: '500g bulk', stock: 40, price: 4000 }],
+  }))
+
+  // ── WUSE FASHION ABUJA (Wuse II, Abuja) ────────────────────────────────────
+  sqProds.push(await makeSqProduct({
+    title: 'Corporate Ankara Blazer (Women)',
+    slug: 'corporate-ankara-blazer-women',
+    description: 'Modern structured blazer in bold Ankara print. Fully lined, with two functional pockets. Ideal for corporate Fridays, meetings, and styled with trousers or a pencil skirt. Made in Abuja. Ships in 5 working days.',
+    price: 34000, isFeatured: true, affiliateCommission: 3000,
+    categoryIds: [catMapFull['womens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.dress1, IMGS.ankara1, IMGS.dress3],
+    sellerSlug: 'wuse-fashion-abuja',
+    variants: [{ size: 'S', stock: 5 }, { size: 'M', stock: 8 }, { size: 'L', stock: 6 }, { size: 'XL', stock: 4 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Abuja Senator Suit (Men)',
+    slug: 'abuja-senator-suit-men',
+    description: 'Classic senator linen suit — jacket and straight-cut trousers. Embroidered breast pocket. Abuja\'s go-to style for government functions, Eid, and formal occasions. Available in navy, charcoal, and cream. Tailored to measurements or select standard size.',
+    price: 52000, isFeatured: true, affiliateCommission: 5000,
+    categoryIds: [catMapFull['mens-fashion'], catMapFull['nigerian-heritage']],
+    images: [IMGS.men2, IMGS.men1, IMGS.men3],
+    sellerSlug: 'wuse-fashion-abuja',
+    variants: [{ size: 'M', stock: 5 }, { size: 'L', stock: 7 }, { size: 'XL', stock: 5 }, { size: 'XXL', stock: 3 }],
+  }))
+  sqProds.push(await makeSqProduct({
+    title: 'Abuja Crossbody Leather Bag',
+    slug: 'abuja-crossbody-leather-bag',
+    description: 'Clean, minimalist crossbody bag in genuine leather. Perfect for the Abuja professional — fits phone, ID, and essentials. Gold-tone hardware, adjustable strap. Available in cognac tan and classic black.',
+    price: 24500, affiliateCommission: 2200,
+    categoryIds: [catMapFull['bags-luggage']],
+    images: [IMGS.bag2, IMGS.bag1, IMGS.bag3],
+    sellerSlug: 'wuse-fashion-abuja',
+    variants: [{ size: 'Cognac Tan', stock: 12 }, { size: 'Classic Black', stock: 15 }],
+  }))
+
+  // Enable showInFeed for all published products (existing + new)
+  await prisma.products.updateMany({
+    where: { status: 'PUBLISHED' },
+    data: { showInFeed: true },
+  })
+
+  const sqProdFiltered = sqProds.filter(Boolean)
+  console.log(`✅ Square products (${sqProdFiltered.length} created, all published products set showInFeed=true)`)
+
+  // ── 12. Create Squares + Wallets ───────────────────────────────────────────
+  interface SquareSeed {
+    name: string; slug: string; type: 'GEOGRAPHIC' | 'CATEGORY'
+    description: string; city?: string; state?: string; country?: string
+    latitude?: number; longitude?: number; physicalAddress?: string
+    associationCutPercent: number; accentColor: string
+    sellerSlugs: string[]       // store_slugs of members
+    chairmanSlug: string         // store_slug of chairman
+  }
+
+  const SQUARES: SquareSeed[] = [
+    {
+      name: 'Hamaz Shopping Complex',
+      slug: 'hamaz-complex-jos',
+      type: 'GEOGRAPHIC',
+      description: 'Jos\'s iconic Hamaz Shopping Complex — a hub for Plateau State artisan crafts, electronics, fashion, and everyday goods. Serving Jos traders since 1998.',
+      city: 'Jos', state: 'Plateau', country: 'Nigeria',
+      latitude: 9.9261, longitude: 8.8908,
+      physicalAddress: 'Hamaz Shopping Complex, Ahmadu Bello Way, Jos, Plateau State',
+      associationCutPercent: 0.5, accentColor: '#ea580c',
+      chairmanSlug: 'hamaz-crafts',
+      sellerSlugs: ['hamaz-crafts'],
+    },
+    {
+      name: 'Yola Central Market Complex',
+      slug: 'yola-central-market',
+      type: 'GEOGRAPHIC',
+      description: 'The heartbeat of Adamawa commerce. Yola\'s largest covered market hosts leather craftsmen, fabric traders, electronics dealers, and Fulani artisans under one roof.',
+      city: 'Yola', state: 'Adamawa', country: 'Nigeria',
+      latitude: 9.2035, longitude: 12.4954,
+      physicalAddress: 'Yola Central Market, Bekaji Road, Yola, Adamawa State',
+      associationCutPercent: 0.5, accentColor: '#7c3aed',
+      chairmanSlug: 'yola-leather-co',
+      sellerSlugs: ['yola-leather-co'],
+    },
+    {
+      name: 'Balogun Market Square',
+      slug: 'balogun-market-lagos',
+      type: 'GEOGRAPHIC',
+      description: 'West Africa\'s largest fabric and fashion market. Balogun Market on Lagos Island is the source for Ankara prints, Swiss lace, Aso-oke, George wrappers, and every fabric known to Nigerian fashion.',
+      city: 'Lagos Island', state: 'Lagos', country: 'Nigeria',
+      latitude: 6.4541, longitude: 3.3947,
+      physicalAddress: 'Balogun Market, Lagos Island, Lagos State',
+      associationCutPercent: 1.0, accentColor: '#f59e0b',
+      chairmanSlug: 'balogun-fabrics',
+      sellerSlugs: ['balogun-fabrics', 'ada-styles', 'amara-couture', 'kene-threads'],
+    },
+    {
+      name: 'Computer Village Square',
+      slug: 'computer-village-ikeja',
+      type: 'GEOGRAPHIC',
+      description: 'Africa\'s largest IT market. Ikeja\'s Computer Village is the destination for phones, laptops, accessories, repairs, and everything tech in Nigeria. Over 3,000 vendors on 4 streets.',
+      city: 'Ikeja', state: 'Lagos', country: 'Nigeria',
+      latitude: 6.6018, longitude: 3.3515,
+      physicalAddress: 'Computer Village, Ikeja, Lagos State',
+      associationCutPercent: 0.75, accentColor: '#0891b2',
+      chairmanSlug: 'cv-accessories-hub',
+      sellerSlugs: ['cv-accessories-hub'],
+    },
+    {
+      name: 'Bodija Market Square',
+      slug: 'bodija-market-ibadan',
+      type: 'GEOGRAPHIC',
+      description: 'Ibadan\'s legendary Bodija Market — the largest market in Oyo State. Everything from Adire fabric and local produce to fashion and beauty. The cultural pulse of Ibadan commerce.',
+      city: 'Ibadan', state: 'Oyo', country: 'Nigeria',
+      latitude: 7.4126, longitude: 3.9010,
+      physicalAddress: 'Bodija Market, Bodija, Ibadan, Oyo State',
+      associationCutPercent: 0.5, accentColor: '#16a34a',
+      chairmanSlug: 'bodija-roots',
+      sellerSlugs: ['bodija-roots', 'funmi-thrift-hub', 'temi-beauty'],
+    },
+    {
+      name: 'Wuse Market Abuja',
+      slug: 'wuse-market-abuja',
+      type: 'GEOGRAPHIC',
+      description: 'The FCT\'s premier fashion and lifestyle market. Wuse II Market in Abuja is where diplomats, civil servants, and Abuja\'s fashion-forward crowd shop for quality fashion, accessories, and lifestyle goods.',
+      city: 'Abuja', state: 'FCT', country: 'Nigeria',
+      latitude: 9.0579, longitude: 7.4951,
+      physicalAddress: 'Wuse Market, Wuse II, Abuja, FCT',
+      associationCutPercent: 0.75, accentColor: '#be185d',
+      chairmanSlug: 'wuse-fashion-abuja',
+      sellerSlugs: ['wuse-fashion-abuja'],
+    },
+    {
+      name: 'Nigerian Heritage Artisans',
+      slug: 'nigerian-heritage-artisans',
+      type: 'CATEGORY',
+      description: 'A national community of artisans preserving and evolving Nigerian heritage crafts — Adire, Aso-oke, leather tooling, tin work, beadwork, and more. No location boundary, just authentic Naija craft.',
+      associationCutPercent: 0.5, accentColor: '#854d0e',
+      chairmanSlug: 'hamaz-crafts',
+      sellerSlugs: ['hamaz-crafts', 'ada-styles', 'temi-beauty', 'yola-leather-co'],
+    },
+  ]
+
+  // Combine all known sellers for lookup
+  const allSellersBySlug: Record<string, any> = { ...sellers, ...sqSellers }
+
+  const squareRecords: Record<string, any> = {}
+
+  for (const sq of SQUARES) {
+    let squareRec = await prisma.square.findUnique({ where: { slug: sq.slug } })
+    if (!squareRec) {
+      squareRec = await prisma.square.create({
+        data: {
+          name: sq.name, slug: sq.slug, type: sq.type as any,
+          status: 'ACTIVE' as any,
+          description: sq.description,
+          city: sq.city ?? null, state: sq.state ?? null, country: sq.country ?? 'Nigeria',
+          latitude: sq.latitude ?? null, longitude: sq.longitude ?? null,
+          physicalAddress: sq.physicalAddress ?? null,
+          associationCutPercent: sq.associationCutPercent,
+          accentColor: sq.accentColor,
+          memberCount: sq.sellerSlugs.length,
+          followerCount: Math.floor(Math.random() * 800) + 50,
+        },
+      })
+    }
+    squareRecords[sq.slug] = squareRec
+
+    // Create wallet if absent
+    const existingWallet = await prisma.squareWallet.findUnique({ where: { squareId: squareRec.id } })
+    if (!existingWallet) {
+      await prisma.squareWallet.create({
+        data: { squareId: squareRec.id, balance: 0, totalEarned: 0 },
+      })
+    }
+
+    // ── Chairman officer ──────────────────────────────────────────────────────
+    const chairmanSeller = allSellersBySlug[sq.chairmanSlug]
+    if (chairmanSeller) {
+      await prisma.squareOfficer.upsert({
+        where: { squareId_profileId: { squareId: squareRec.id, profileId: chairmanSeller.profileId } },
+        update: {},
+        create: { squareId: squareRec.id, profileId: chairmanSeller.profileId, role: 'CHAIRMAN' as any },
+      })
+    }
+
+    // ── Memberships + primarySquareId ─────────────────────────────────────────
+    for (const storeSlug of sq.sellerSlugs) {
+      const sellerRec = allSellersBySlug[storeSlug]
+      if (!sellerRec) continue
+
+      const isPrimary = !sellerRec.primarySquareId
+      const existingMem = await prisma.squareMembership.findFirst({
+        where: { squareId: squareRec.id, sellerId: sellerRec.id },
+      })
+      if (!existingMem) {
+        await prisma.squareMembership.create({
+          data: {
+            squareId: squareRec.id, sellerId: sellerRec.id,
+            status: 'ACTIVE' as any, isPrimary,
+          },
+        })
+      }
+
+      // Set primarySquareId on SellerProfile if not already set
+      if (!sellerRec.primarySquareId && sq.type === 'GEOGRAPHIC') {
+        await prisma.sellerProfile.update({
+          where: { id: sellerRec.id },
+          data: { primarySquareId: squareRec.id },
+        })
+        sellerRec.primarySquareId = squareRec.id // update in-memory too
+      }
+
+      // Back-fill squareId on all products and posts for this seller
+      await prisma.products.updateMany({
+        where: { sellerId: sellerRec.id, squareId: null },
+        data: { squareId: squareRec.id },
+      })
+      await prisma.post.updateMany({
+        where: { authorId: sellerRec.profileId, squareId: null },
+        data: { squareId: squareRec.id },
+      })
+    }
+  }
+
+  console.log(`✅ Squares (${SQUARES.length} created with wallets, officers, memberships)`)
+
+  // ── 13. Square-tagged posts for new sellers ─────────────────────────────────
+  const sqPost = async (authorId: string, content: string, images: string[], squareId: string, taggedProdIds?: number[]) => {
+    return prisma.post.create({
+      data: {
+        authorId, caption: content.slice(0, 130), content,
+        contentType: 'COMMERCE' as any, visibility: 'PUBLIC' as any, allowComments: true, squareId,
+        media: { create: images.map((url, i) => ({ url, public_id: `seed/sqpost-${Date.now()}-${i}`, type: 'IMAGE', isBgMusic: false, authorId })) },
+        taggedProducts: taggedProdIds?.length ? { create: taggedProdIds.map(productId => ({ productId })) } : undefined,
+      },
+    })
+  }
+
+  const sqProd = (title: string) => sqProdFiltered.find((p: any) => p?.title === title)
+  const hamaz   = squareRecords['hamaz-complex-jos']
+  const yola    = squareRecords['yola-central-market']
+  const balogun = squareRecords['balogun-market-lagos']
+  const cv      = squareRecords['computer-village-ikeja']
+  const bodija  = squareRecords['bodija-market-ibadan']
+  const wuse    = squareRecords['wuse-market-abuja']
+
+  // Hamaz posts
+  await sqPost(sqProfiles['hamaz_crafts'].id, 'History in your hands 🏔️ Jos tin mining gave Nigeria its engineering story. Our artisans now transform that tin into art. Each sculpture carries the memory of the plateau. #JosCrafts #PlateauState', [IMGS.jewel3, IMGS.jewel2], hamaz.id, [sqProd('Plateau Tin Art Sculpture')?.id].filter(Boolean))
+  await sqPost(sqProfiles['hamaz_crafts'].id, 'Gemstones mined right here in Plateau State 💎 tourmaline, aquamarine, quartz — set by hand into sterling silver. You cannot find this anywhere else in Nigeria. Come to Hamaz Complex Jos 📍', [IMGS.jewel1, IMGS.jewel2], hamaz.id, [sqProd('Jos Plateau Gemstone Necklace')?.id].filter(Boolean))
+
+  // Yola posts
+  await sqPost(sqProfiles['yola_leather'].id, 'Adamawa leather has no rival 🐪 This satchel took 4 days to tool, stitch, and finish. Every line is hand-drawn. Every stitch is deliberate. Order yours from Yola 📦', [IMGS.bag1, IMGS.bag2], yola.id, [sqProd('Fulani Embroidered Leather Satchel')?.id].filter(Boolean))
+  await sqPost(sqProfiles['yola_leather'].id, 'The Babban Riga is not just clothing — it is a declaration 👑 These are sewn by master tailors who have been sewing for 30+ years in Yola. The embroidery alone takes a full day. #NigerianKing #AdamawaFashion', [IMGS.men1, IMGS.men4], yola.id, [sqProd('Traditional Hausa Babban Riga')?.id].filter(Boolean))
+
+  // Balogun posts
+  await sqPost(sqProfiles['balogun_fabrics'].id, '30 years in Balogun Market and we still find new patterns every season 🧵 These Dutch Wax prints are THIS season\'s freshest. 6 yards, ₦12,500. Come see us at Balogun Market Lagos Island or shop online 👇 #BalogunMarket #AnkaraFashion', [IMGS.ankara1, IMGS.ankara2, IMGS.ankara3], balogun.id, [sqProd('Premium Dutch Wax Ankara Print (6 yards)')?.id].filter(Boolean))
+  await sqPost(sqProfiles['balogun_fabrics'].id, 'Asoebi season has arrived and Swiss lace is EVERYTHING this year 🤍 We just got fresh stock — ivory, champagne, and dusty rose. Owambe-ready fabrics at Balogun prices. #SwissLace #Asoebi #LagosWedding', [IMGS.dress2, IMGS.dress4], balogun.id, [sqProd('Swiss Voile Lace Fabric (5 yards)')?.id].filter(Boolean))
+
+  // CV posts
+  await sqPost(sqProfiles['cv_accessories'].id, 'Computer Village pricing, nationwide delivery 📱 This 65W GaN charger is the real deal — no fake, no clone. Charges your MacBook AND your iPhone at the same time. ₦12,500 and 18-month warranty. #ComputerVillage #TechNaija', [IMGS.beauty1, IMGS.beauty2], cv.id, [sqProd('65W GaN Fast Charger (USB-C + USB-A)')?.id].filter(Boolean))
+  await sqPost(sqProfiles['cv_accessories'].id, 'ANC earbuds for under ₦20k — yes we said it 🎧 These TWS earbuds actually cancel Lagos traffic noise. 8 hours battery life. IPX4 sweatproof. Available in black and white. Shop now 👇 #Naijatech #CVPrices', [IMGS.beauty2, IMGS.beauty3], cv.id, [sqProd('True Wireless Earbuds (ANC)')?.id].filter(Boolean))
+
+  // Bodija posts
+  await sqPost(sqProfiles['bodija_roots'].id, 'Ibadan Adire is a different kind of beautiful 💙 The cassava-paste resist technique has been used in Bodija for over 200 years. Each pattern tells a story. 3 yards for ₦8,500. 100% authentic, 100% Ibadan-made 🙏 #Adire #IbadanFashion', [IMGS.ankara2, IMGS.ankara4], bodija.id, [sqProd('Ibadan Adire Eleko Fabric (3 yards)')?.id].filter(Boolean))
+  await sqPost(sqProfiles['bodija_roots'].id, 'Your mama\'s kitchen secret 🌶️ Pure Iru (locust beans) from Bodija Market. Sun-dried, no preservatives, sealed fresh. This is what makes Yoruba soup different from the rest. ₦1,800 per pack. Ship nationwide 🚚', [IMGS.beauty3, IMGS.beauty1], bodija.id, [sqProd('Ibadan Locust Bean Seasoning (Iru) Pack')?.id].filter(Boolean))
+
+  // Wuse posts
+  await sqPost(sqProfiles['wuse_fashion'].id, 'Corporate Ankara is the Abuja uniform and we are not complaining 💼 This structured blazer goes straight from boardroom to owambe. Custom-tailored in Wuse, ships in 5 days. #AbujFashion #WuseFashion #CorporateAnkara', [IMGS.dress1, IMGS.ankara1], wuse.id, [sqProd('Corporate Ankara Blazer (Women)')?.id].filter(Boolean))
+  await sqPost(sqProfiles['wuse_fashion'].id, 'Eid Mubarak to all our customers 🌙 Our senator suit is back in fresh linen — navy, charcoal, cream. Abuja-made, tailored to your measurements. DM "SENATOR" to order. ₦52,000 full set. #AbujaSenator #EidFashion', [IMGS.men2, IMGS.men1], wuse.id, [sqProd('Abuja Senator Suit (Men)')?.id].filter(Boolean))
+
+  console.log('✅ Square posts (12 created)')
+
   console.log('\n🎉 Seed complete!')
   console.log('─────────────────────────────────')
   console.log('Seller accounts:')
-  console.log('  ada@peppr.test        / test1234  (Ada Styles)')
-  console.log('  amara@peppr.test      / test1234  (Amara Couture)')
-  console.log('  kene@peppr.test       / test1234  (Kene Threads)')
-  console.log('  funmi@peppr.test      / test1234  (Funmi Thrift Hub)')
-  console.log('  temi@peppr.test       / test1234  (Temi Beauty)')
+  console.log('  ada@peppr.test        / test1234  (Ada Styles — Balogun Market)')
+  console.log('  amara@peppr.test      / test1234  (Amara Couture — Balogun Market)')
+  console.log('  kene@peppr.test       / test1234  (Kene Threads — Balogun Market)')
+  console.log('  funmi@peppr.test      / test1234  (Funmi Thrift Hub — Bodija Market)')
+  console.log('  temi@peppr.test       / test1234  (Temi Beauty — Bodija Market)')
+  console.log('  hamaz@peppr.test      / test1234  (Hamaz Crafts — Hamaz Complex Jos)')
+  console.log('  yola@peppr.test       / test1234  (Yola Leather Co — Yola Central Market)')
+  console.log('  balogun@peppr.test    / test1234  (Balogun Fabrics — Balogun Market Lagos)')
+  console.log('  cvtech@peppr.test     / test1234  (CV Accessories Hub — Computer Village)')
+  console.log('  bodija@peppr.test     / test1234  (Bodija Roots — Bodija Market Ibadan)')
+  console.log('  wuse@peppr.test       / test1234  (Wuse Fashion Abuja — Wuse Market)')
   console.log('Buyer accounts:')
   console.log('  chidi@peppr.test      / test1234')
   console.log('  sade@peppr.test       / test1234')
   console.log('  emeka@peppr.test      / test1234')
   console.log('  ngozi@peppr.test      / test1234')
   console.log('  bayo@peppr.test       / test1234')
+  console.log('\nSquares seeded:')
+  console.log('  📍 Hamaz Complex, Jos (Plateau) — 9.9261° N, 8.8908° E')
+  console.log('  📍 Yola Central Market (Adamawa) — 9.2035° N, 12.4954° E')
+  console.log('  📍 Balogun Market Square (Lagos Island) — 6.4541° N, 3.3947° E')
+  console.log('  📍 Computer Village Square (Ikeja, Lagos) — 6.6018° N, 3.3515° E')
+  console.log('  📍 Bodija Market Square (Ibadan, Oyo) — 7.4126° N, 3.9010° E')
+  console.log('  📍 Wuse Market Abuja (FCT) — 9.0579° N, 7.4951° E')
+  console.log('  🏷️  Nigerian Heritage Artisans (Category Square)')
 }
 
 main()

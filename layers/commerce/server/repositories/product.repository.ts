@@ -105,6 +105,12 @@ export const productRepository = {
     data: CreateProductInput & { slug: string },
     authorId?: string,
   ) {
+    // Inherit squareId from the seller's primary Square
+    const sellerProfile = await prisma.sellerProfile.findUnique({
+      where: { id: sellerId },
+      select: { primarySquareId: true },
+    })
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productData: any = {
       title: data.title,
@@ -117,6 +123,7 @@ export const productRepository = {
       isFeatured: data.isFeatured ?? false,
       isAccessory: data.isAccessory ?? false,
       isThrift: data.isThrift ?? false,
+      ...(sellerProfile?.primarySquareId && { squareId: sellerProfile.primarySquareId }),
     }
 
     if (data.discount !== undefined) productData.discount = data.discount
@@ -344,9 +351,32 @@ export const productRepository = {
       updateData.media = { connect: [{ id: data.mediaId }] }
     }
 
-    // Replace variants if provided (delete all, create new)
+    // Replace variants if provided — preserve any variant still referenced by an
+    // order or an active cart (deleting those would cascade-wipe buyer cart items)
     if (data.variants !== undefined) {
-      await prisma.productVariant.deleteMany({ where: { productId: id } })
+      const [orderedVariants, cartedVariants] = await Promise.all([
+        prisma.orderItem.findMany({
+          where: { variant: { productId: id } },
+          select: { variantId: true },
+          distinct: ['variantId'],
+        }),
+        prisma.cartItem.findMany({
+          where: { variant: { productId: id } },
+          select: { variantId: true },
+          distinct: ['variantId'],
+        }),
+      ])
+
+      const protectedIds = new Set([
+        ...orderedVariants.map((o) => o.variantId),
+        ...cartedVariants.map((c) => c.variantId),
+      ].filter(Boolean) as number[])
+
+      // Only delete variants not referenced by any order or cart
+      await prisma.productVariant.deleteMany({
+        where: { productId: id, id: { notIn: protectedIds.size ? [...protectedIds] : [-1] } },
+      })
+
       if (data.variants.length > 0) {
         updateData.variants = {
           create: data.variants.map((v: any) => ({

@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
       data: status,
     }
   } catch (error: any) {
-    console.error('Get follow status error:', error)
+    logger.error('Get follow status error:', error)
 
     throw createError({
       statusCode: error.statusCode || 500,

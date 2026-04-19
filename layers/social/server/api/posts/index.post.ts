@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: error.message,
       })
     }
-    console.error('[posts] createPost error:', error)
+    logger.error('[posts] createPost error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: error?.message || 'Internal server error',

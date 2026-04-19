@@ -4,7 +4,14 @@ export const useChatStore = defineStore('chat', () => {
   const conversations = ref<IConversation[]>([])
   const currentConversation = ref<IConversation | null>(null)
   const messagesByConversation = ref<Record<string, IMessage[]>>({})
-  const isLoading = ref(false)
+  const {
+    isLoading,
+    hasFetchedOnce: hasFetchedConversations,
+    isInitialLoad: isInitialConversationLoad,
+    begin,
+    end,
+    reset,
+  } = useAsyncStatus()
   const error = ref<string | null>(null)
 
   const getConversationById = (id: string) =>
@@ -85,7 +92,8 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const setLoading = (loading: boolean) => {
-    isLoading.value = loading
+    if (loading) begin()
+    else end()
   }
   const setError = (err: string | null) => {
     error.value = err
@@ -94,6 +102,8 @@ export const useChatStore = defineStore('chat', () => {
     conversations.value = []
     messagesByConversation.value = {}
     currentConversation.value = null
+    reset()
+    error.value = null
   }
 
   return {
@@ -101,6 +111,8 @@ export const useChatStore = defineStore('chat', () => {
     currentConversation,
     messagesByConversation,
     isLoading,
+    hasFetchedConversations,
+    isInitialConversationLoad,
     error,
     getConversationById,
     getConversationMessages,

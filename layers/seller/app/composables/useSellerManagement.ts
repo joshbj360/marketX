@@ -4,6 +4,7 @@ import { useSellerApi } from '../services/seller.services'
 import { useSellerStore } from '../store/seller.store'
 import { useProfile } from '~~/layers/profile/app/composables/useProfile'
 import { useAuthStore } from '~~/layers/core/app/stores/auth.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 
 /**
  * Seller Management Composable
@@ -71,7 +72,7 @@ export function useSellerManagement() {
         }
         throw Object.assign(error, { fieldErrors: fieldMap })
       }
-      const message = error.message || 'Failed to create seller'
+      const message = extractErrorMessage(error, 'Failed to create seller')
       sellerStore.setError(message)
       throw error
     } finally {
@@ -94,10 +95,7 @@ export function useSellerManagement() {
       sellerStore.setSellers(result.data)
       return result
     } catch (error: any) {
-      const message =
-        error.response?.data?.statusMessage ||
-        error.message ||
-        'Failed to load sellers'
+      const message = extractErrorMessage(error, 'Failed to load sellers')
       sellerStore.setError(message)
       throw error
     } finally {
@@ -115,10 +113,7 @@ export function useSellerManagement() {
       sellerStore.setCurrentSeller(seller)
       return result
     } catch (error: any) {
-      const message =
-        error.response?.data?.statusMessage ||
-        error.message ||
-        'Seller not found'
+      const message = extractErrorMessage(error, 'Seller not found')
       sellerStore.setError(message)
       throw error
     } finally {
@@ -154,10 +149,7 @@ export function useSellerManagement() {
 
       return result
     } catch (error: any) {
-      const message =
-        error.response?.data?.statusMessage ||
-        error.message ||
-        'Failed to update seller'
+      const message = extractErrorMessage(error, 'Failed to update seller')
       sellerStore.setError(message)
       throw error
     } finally {
@@ -179,10 +171,7 @@ export function useSellerManagement() {
 
       return result
     } catch (error: any) {
-      const message =
-        error.response?.data?.statusMessage ||
-        error.message ||
-        'Failed to activate seller'
+      const message = extractErrorMessage(error, 'Failed to activate seller')
       sellerStore.setError(message)
       throw error
     } finally {
@@ -202,10 +191,7 @@ export function useSellerManagement() {
 
       return result
     } catch (error: any) {
-      const message =
-        error.response?.data?.statusMessage ||
-        error.message ||
-        'Failed to deactivate seller'
+      const message = extractErrorMessage(error, 'Failed to deactivate seller')
       sellerStore.setError(message)
       throw error
     } finally {

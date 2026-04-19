@@ -10,12 +10,16 @@
     >
       <!-- VIDEO (takes priority over image collage) -->
       <template v-if="videoItem">
+        <!-- LQIP blur while video poster loads -->
+        <div
+          class="absolute inset-0 scale-110 bg-cover bg-center"
+          :style="{ backgroundImage: `url(${imgLqip(videoItem.url)})`, filter: 'blur(12px)' }"
+          aria-hidden="true"
+        />
         <video
           ref="videoRef"
-          :src="videoItem.url"
-          :poster="
-            (videoItem as { thumbnailUrl?: string })?.thumbnailUrl ?? undefined
-          "
+          :src="videoFeedUrl(videoItem.url)"
+          :poster="videoThumb(videoItem.url)"
           class="absolute inset-0 h-full w-full object-cover"
           loop
           playsinline
@@ -39,14 +43,20 @@
           />
         </div>
 
-        <!-- 1 Image -->
-        <img
-          v-else-if="imageItems.length === 1"
-          :src="imageItems[0]!.url"
-          :alt="product.title"
-          loading="lazy"
-          class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <!-- 1 Image with LQIP blur-up -->
+        <template v-else-if="imageItems.length === 1">
+          <div
+            class="absolute inset-0 scale-110 bg-cover bg-center"
+            :style="{ backgroundImage: `url(${imgLqip(imageItems[0]!.url)})`, filter: 'blur(12px)' }"
+            aria-hidden="true"
+          />
+          <img
+            :src="imageItems[0]!.url"
+            :alt="product.title"
+            loading="lazy"
+            class="relative h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </template>
 
         <!-- 2 Images: Side by side -->
         <div
@@ -350,7 +360,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { IProduct } from '../types/commerce.types'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import { notify } from '@kyvg/vue3-notification'
-import { imgThumb } from '~~/layers/core/app/utils/cloudinary'
+import { imgThumb, videoFeedUrl, videoThumb, imgLqip } from '~~/layers/core/app/utils/cloudinary'
 import { useFeedSound } from '~~/layers/feed/app/composables/useFeedSound'
 import { useShareModal } from '~~/layers/social/app/composables/useShareModal'
 // Eslint can't find these without a relative path, might be a workspace config issue

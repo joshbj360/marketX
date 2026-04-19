@@ -81,7 +81,7 @@ export const walletService = {
     })
 
     if (!pendingCredits.length) {
-      console.warn(
+      logger.warn(
         `[wallet] No CREDIT_PENDING transactions found for order #${orderId} — skipping release`,
       )
       return
@@ -144,7 +144,7 @@ export const walletService = {
       } else {
         // Non-seller affiliate: store as a buyer-wallet credit using a lightweight transaction log
         // (for now, log it — a dedicated buyer wallet can be added later)
-        console.info(
+        logger.info(
           `[affiliate] Non-seller affiliate ${order.affiliateUserId} earned ${order.affiliateCut} kobo on order #${orderId} — buyer wallet not yet implemented`,
         )
       }

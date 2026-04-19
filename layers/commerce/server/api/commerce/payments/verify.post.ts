@@ -6,6 +6,7 @@ import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
 import { notificationQueue } from '~~/server/queues/notification.queue'
 import { walletService } from '../../../services/wallet.service'
 import { orderRepository } from '../../../repositories/order.repository'
+import { squareService } from '~~/layers/square/server/services/square.service'
 
 /** Notify every unique seller whose products are in this order */
 async function notifySellers(orderId: number, buyerName: string) {
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
     if (!order) throw new UserError('NOT_FOUND', 'Order not found for this reference', 404)
     if (order.userId !== user.id) throw new UserError('FORBIDDEN', 'Access denied', 403)
 
-    // 2. Already confirmed — idempotent
+    // 2. Already confirmed — idempotent early return
     if (order.paymentStatus === 'PAID') {
       return { success: true, data: { status: 'already_paid', orderId: order.id } }
     }
@@ -57,12 +58,21 @@ export default defineEventHandler(async (event) => {
     const result = await paystack.verifyTransaction(reference)
 
     if (result.data.status === 'success') {
-      await orderRepository.updatePaymentStatus(order.id, 'PAID', 'CONFIRMED')
-      // Non-blocking — notify sellers and credit wallets in background
-      notifySellers(order.id, user.username || user.email || 'a customer')
-        .catch((e) => console.error('[notify sellers]', e))
-      walletService.creditSellersOnPayment(order.id)
-        .catch((e) => console.error('[wallet credit]', e))
+      // Atomic update — only the first concurrent caller gets count > 0.
+      // If the webhook already processed this reference, count === 0 and we
+      // skip side effects to prevent double-crediting.
+      const { count } = await prisma.orders.updateMany({
+        where: { id: order.id, paymentStatus: { notIn: ['PAID', 'FAILED'] } },
+        data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
+      })
+      if (count > 0) {
+        notifySellers(order.id, user.username || user.email || 'a customer')
+          .catch((e) => logger.error('Verify: notify sellers failed', { orderId: order.id, error: e?.message ?? e }))
+        walletService.creditSellersOnPayment(order.id)
+          .catch((e) => logger.error('Verify: wallet credit failed', { orderId: order.id, error: e?.message ?? e }))
+        squareService.creditAssociationsForOrder(order.id)
+          .catch((e) => logger.error('Verify: association credit failed', { orderId: order.id, error: e?.message ?? e }))
+      }
       return { success: true, data: { status: 'paid', orderId: order.id } }
     }
 

@@ -91,7 +91,7 @@ Return ONLY this JSON structure:
       err?.data?.message ||
       err?.message ||
       'Unknown error'
-    console.error(
+    logger.error(
       `[POST /api/ai/generate-listing] ${status}: ${detail}`,
       err?.data || '',
     )

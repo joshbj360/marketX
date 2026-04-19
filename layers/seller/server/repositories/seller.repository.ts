@@ -214,6 +214,10 @@ export const sellerRepository = {
       state?: string
       locationLabel?: string
       hideLocation?: boolean
+      // POD
+      pod_enabled?: boolean
+      pod_zones?: string[]
+      pod_delivery_days?: number
     },
   ): Promise<any> {
     // Verify ownership
@@ -273,6 +277,10 @@ export const sellerRepository = {
         ...(data.hideLocation !== undefined && {
           hideLocation: data.hideLocation,
         }),
+        // POD settings
+        ...(data.pod_enabled !== undefined && { pod_enabled: data.pod_enabled }),
+        ...(data.pod_zones !== undefined && { pod_zones: data.pod_zones }),
+        ...(data.pod_delivery_days !== undefined && { pod_delivery_days: data.pod_delivery_days }),
       },
     })
   },

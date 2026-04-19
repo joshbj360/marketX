@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    console.error('[Send Verification Email API] Error:', error)
+    logger.error('[Send Verification Email API] Error:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to send verification email',

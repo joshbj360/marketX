@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: error.statusCode, statusMessage: error.message })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    console.error('[Verify Email API] Error:', error)
+    logger.error('[Verify Email API] Error:', error)
     throw createError({ statusCode: 500, statusMessage: 'Internal server error' })
   }
 })

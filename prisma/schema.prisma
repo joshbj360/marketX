@@ -54,6 +54,12 @@ model Profile {
   user_settings      UserSettings?
   affiliateOrders    Orders[]       @relation("AffiliateOrders")
   reviews            Review[]       @relation("UserReviews")
+
+  // ── Squares ──────────────────────────────────────────────────────────────
+  squareOfficerRoles     SquareOfficer[]      @relation("SquareOfficers")
+  squareFollows          UserSquareFollow[]   @relation("UserSquareFollows")
+  squareMembershipsVerified SquareMembership[] @relation("SquareMembershipVerifier")
+  squarePayoutRequests   SquarePayout[]       @relation("SquarePayoutRequests")
 }
 
 model SellerProfile {
@@ -96,6 +102,14 @@ model SellerProfile {
   lastActiveAt   DateTime? @db.Timestamptz(6) // updated on dashboard visit — drives online status
   businessHours  Json?    // { mon:{open,close,closed}, tue:..., ... } — weekly schedule
   timezone       String   @default("Africa/Lagos") // IANA timezone for open/closed computation
+  // ── Pay on Delivery ──────────────────────────────────────────────────────
+  pod_enabled        Boolean  @default(false)   // seller opts into POD
+  pod_zones          Json?                       // string[] of eligible state names e.g. ["Lagos","Abuja"]
+  pod_delivery_days  Int      @default(3)        // promised delivery window in days
+  // ── Squares ──────────────────────────────────────────────────────────────
+  /// Denormalised for fast feed queries — mirrors the SquareMembership where isPrimary = true
+  primarySquareId   String?           @db.Uuid
+  squareMemberships SquareMembership[] @relation("SellerSquareMemberships")
   media                 Media[]                @relation("MediaSeller")
   products              Products[]             @relation("SellerProducts")
   profile               Profile                @relation("SellerProfile", fields: [profileId], references: [id], onDelete: Cascade)
@@ -198,6 +212,9 @@ model Products {
   // ── Pre-loved / Thrift ────────────────────────────────────────────────────
   /// Physical condition for pre-loved/thrift items
   condition      String?  // NEW_WITH_TAGS | LIKE_NEW | GOOD | FAIR | POOR
+  /// The Square this product belongs to — inherited from the seller's primary Square
+  squareId       String?  @db.Uuid
+  square         Square?  @relation("SquareProducts", fields: [squareId], references: [id], onDelete: SetNull)
   comments       Comment[]
   conversations  Conversation[]      @relation("ConversationProduct")
   likes          Like[]
@@ -423,6 +440,9 @@ model Post {
   viewCount      Int              @default(0)
   /// True when this Post was auto-created from a product (unified product post)
   isProductPost  Boolean          @default(false)
+  /// The Square this post belongs to — inherited from the author's primary Square at creation time
+  squareId       String?          @db.Uuid
+  square         Square?          @relation("SquarePosts", fields: [squareId], references: [id], onDelete: SetNull)
   /// The product this post was generated from (populated when isProductPost = true)
   sourceProduct  Products?        @relation("ProductLinkedPost")
   comments       Comment[]
@@ -796,6 +816,193 @@ model Review {
   @@index([authorId])
 }
 
+// ==================== SQUARES ====================
+
+/// A Square is a named community of sellers — either anchored to a real
+/// physical market (Computer Village, Balogun, Bodija) or a category-based
+/// cluster for online-first sellers. It is the primary discovery and feed
+/// surface in MarketX.
+model Square {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String       @unique  // "Computer Village Square"
+  slug        String       @unique  // "computer-village"
+  description String?
+  type        SquareType   @default(CATEGORY)
+  status      SquareStatus @default(PENDING)
+
+  // Branding
+  bannerUrl   String?
+  iconUrl     String?
+  accentColor String?      // hex — allows per-square UI theming
+
+  // Geographic data (GEOGRAPHIC squares only)
+  latitude        Float?
+  longitude       Float?
+  city            String?
+  state           String?
+  country         String   @default("NG")
+  physicalAddress String?
+
+  // Association financial config — how much of GMV goes to the association
+  associationCutPercent Float @default(0.5)
+
+  // Denormalised counters — updated by the service layer on membership/follow changes
+  memberCount   Int @default(0)
+  followerCount Int @default(0)
+  postCount     Int @default(0)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relations
+  officers     SquareOfficer[]
+  memberships  SquareMembership[]
+  followers    UserSquareFollow[]
+  wallet       SquareWallet?
+  transactions SquareTransaction[]
+  posts        Post[]              @relation("SquarePosts")
+  products     Products[]          @relation("SquareProducts")
+
+  @@index([type, status])
+  @@index([city, state])
+}
+
+/// An association officer — a Profile granted a governance role within a Square.
+/// The Chairman has full control; Secretary handles day-to-day operations;
+/// Treasurer sees financials; Govt Rep is read-only.
+model SquareOfficer {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squareId    String            @db.Uuid
+  profileId   String            @db.Uuid
+  role        SquareOfficerRole
+  appointedAt DateTime          @default(now()) @db.Timestamptz(6)
+  appointedBy String?           @db.Uuid // profileId of the officer who appointed them
+
+  square  Square  @relation(fields: [squareId], references: [id], onDelete: Cascade)
+  profile Profile @relation("SquareOfficers", fields: [profileId], references: [id], onDelete: Cascade)
+
+  // One person holds one role per Square (can be changed, not doubled up)
+  @@unique([squareId, profileId])
+  @@index([squareId])
+  @@index([profileId])
+}
+
+/// Tracks which sellers belong to which Squares, and whether the membership
+/// is their primary identity (isPrimary = true) or a secondary Square for
+/// additional feed exposure (isPrimary = false).
+/// Rules: one primary per seller, max two secondary (Category Squares only).
+model SquareMembership {
+  id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squareId      String                 @db.Uuid
+  sellerId      String                 @db.Uuid
+  isPrimary     Boolean                @default(false)
+  status        SquareMembershipStatus @default(PENDING)
+  verifiedById  String?                @db.Uuid // Profile who approved the membership
+  joinedAt      DateTime               @default(now()) @db.Timestamptz(6)
+  suspendedAt   DateTime?              @db.Timestamptz(6)
+  suspendReason String?
+
+  square     Square        @relation(fields: [squareId], references: [id], onDelete: Cascade)
+  seller     SellerProfile @relation("SellerSquareMemberships", fields: [sellerId], references: [id], onDelete: Cascade)
+  verifiedBy Profile?      @relation("SquareMembershipVerifier", fields: [verifiedById], references: [id])
+
+  @@unique([squareId, sellerId])
+  @@index([squareId, status])
+  @@index([sellerId])
+}
+
+/// A buyer or user following a Square — drives their personalised home feed.
+model UserSquareFollow {
+  userId     String   @db.Uuid
+  squareId   String   @db.Uuid
+  followedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user   Profile @relation("UserSquareFollows", fields: [userId], references: [id], onDelete: Cascade)
+  square Square  @relation(fields: [squareId], references: [id], onDelete: Cascade)
+
+  @@id([userId, squareId])
+  @@index([userId])
+  @@index([squareId])
+}
+
+/// The association's earnings wallet. Accumulates a cut of every completed
+/// order from sellers in the Square. Association officers can request payouts.
+model SquareWallet {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squareId       String   @unique @db.Uuid
+  balance        Float    @default(0)  // available for withdrawal
+  totalEarned    Float    @default(0)  // all-time gross earnings
+  totalWithdrawn Float    @default(0)
+  updated_at     DateTime @updatedAt
+
+  square       Square             @relation(fields: [squareId], references: [id], onDelete: Cascade)
+  transactions SquareTransaction[]
+  payouts      SquarePayout[]
+}
+
+/// One record per completed order that involved a seller in a Square.
+/// Captures the cut percentage at the time of the transaction so historical
+/// records are accurate even if the rate changes later.
+model SquareTransaction {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squareId     String   @db.Uuid
+  walletId     String   @db.Uuid
+  orderId      Int
+  sellerAmount Float    // order value used to compute the cut
+  cutPercent   Float    // associationCutPercent at time of transaction
+  cutAmount    Float    // actual amount credited to the wallet
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  square Square       @relation(fields: [squareId], references: [id])
+  wallet SquareWallet @relation(fields: [walletId], references: [id])
+
+  @@index([squareId])
+  @@index([orderId])
+}
+
+/// A payout request from a Square association (initiated by Chairman or Treasurer).
+model SquarePayout {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId       String    @db.Uuid
+  amount         Float
+  status         String    @default("PENDING") // PENDING | COMPLETED | FAILED
+  bankAccount    Json      // snapshot of account details at time of payout
+  transactionRef String?
+  requestedAt    DateTime  @default(now()) @db.Timestamptz(6)
+  completedAt    DateTime? @db.Timestamptz(6)
+  requestedById  String    @db.Uuid // Chairman or Treasurer who triggered this
+
+  wallet      SquareWallet @relation(fields: [walletId], references: [id])
+  requestedBy Profile      @relation("SquarePayoutRequests", fields: [requestedById], references: [id])
+
+  @@index([walletId])
+}
+
+enum SquareType {
+  GEOGRAPHIC // anchored to a real physical market e.g. Computer Village
+  CATEGORY   // online-first / dispersed sellers e.g. Ankara & Fabrics
+}
+
+enum SquareStatus {
+  PENDING    // registered, awaiting admin activation
+  ACTIVE     // live and visible
+  SUSPENDED  // temporarily disabled
+}
+
+enum SquareOfficerRole {
+  CHAIRMAN   // full admin — approvals, finances, announcements
+  SECRETARY  // operational — onboarding, membership management
+  TREASURER  // financial read — sees earnings and withdrawals
+  MODERATOR  // content — can flag/remove posts in the square
+  GOVT_REP   // read-only observer for regulatory purposes
+}
+
+enum SquareMembershipStatus {
+  PENDING    // seller applied, awaiting officer approval
+  ACTIVE     // approved and active
+  SUSPENDED  // membership suspended
+}
+
 enum ProductStatus {
   DRAFT
   PUBLISHED
@@ -826,6 +1033,7 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  SHIPPING_PAID  // POD: shipping fee paid upfront, product amount due on delivery
 }
 
 enum VerificationStatus {
@@ -846,6 +1054,9 @@ enum NotificationType {
   NEW_FOLLOWER
   NEW_POST
   POST_LIKE
+  SQUARE_ANNOUNCEMENT
+  SQUARE_MEMBERSHIP_APPROVED
+  SQUARE_MEMBERSHIP_REJECTED
 }
 
 enum VisibilityType {

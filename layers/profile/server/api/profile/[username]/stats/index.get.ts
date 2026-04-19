@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
       data: stats,
     }
   } catch (error: unknown) {
-    console.error('Get user stats error:', error)
+    logger.error('Get user stats error:', error)
 
     if (error instanceof UserError) {
       throw createError({

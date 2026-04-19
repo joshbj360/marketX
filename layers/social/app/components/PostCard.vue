@@ -7,87 +7,12 @@
     <div class="h-[3px] w-full" :class="accentBgClass" />
 
     <!-- ─── Header ──────────────────────────────────────────────────── -->
-    <div class="flex items-center justify-between px-3 py-2.5">
-      <div class="flex min-w-0 items-center gap-2">
-        <NuxtLink :to="`/profile/${post.author?.username}`" class="shrink-0">
-          <Avatar
-            :username="post.author?.username ?? 'User'"
-            :avatar="post.author?.avatar ?? ''"
-            size="sm"
-          />
-        </NuxtLink>
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-1.5">
-            <NuxtLink
-              :to="`/profile/${post.author?.username}`"
-              class="text-[13px] font-semibold leading-tight text-gray-900 transition-opacity hover:opacity-75 dark:text-neutral-100"
-            >
-              {{ post.author?.username }}
-            </NuxtLink>
-            <!-- Content type badge -->
-            <span
-              class="inline-flex select-none items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[9px] font-bold uppercase tracking-widest"
-              :class="badgeClass"
-            >
-              <Icon :name="badgeIcon" size="9" />
-              {{ contentTypeLabel }}
-            </span>
-            <!-- Follow button (only on others' posts) -->
-            <template
-              v-if="
-                profileStore.userId &&
-                post.author &&
-                profileStore.userId !== post.author.id
-              "
-            >
-              <span
-                class="select-none text-xs text-gray-300 dark:text-neutral-600"
-                >·</span
-              >
-              <FollowButton
-                :user-id="post.author.id"
-                :username="post.author?.username"
-              />
-            </template>
-          </div>
-        </div>
-      </div>
-      <!-- ─── Owner actions menu ──────────────────────────────── -->
-      <div v-if="isOwner" class="relative ml-1 shrink-0">
-        <button
-          @click.stop="menuOpen = !menuOpen"
-          class="rounded-full p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-neutral-500 dark:hover:text-neutral-200"
-        >
-          <Icon name="mdi:dots-horizontal" size="20" />
-        </button>
-        <div
-          v-if="menuOpen"
-          class="absolute right-0 top-8 z-20 min-w-[140px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
-          @click.stop
-        >
-          <button
-            @click="openEdit"
-            class="flex w-full items-center gap-2 px-4 py-2.5 text-[13px] text-gray-700 transition-colors hover:bg-gray-50 dark:text-neutral-200 dark:hover:bg-neutral-700"
-          >
-            <Icon name="mdi:pencil-outline" size="16" />
-            {{ $t('post.editPost') }}
-          </button>
-          <button
-            @click="handleDelete"
-            class="flex w-full items-center gap-2 px-4 py-2.5 text-[13px] text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
-          >
-            <Icon name="mdi:delete-outline" size="16" />
-            {{ $t('post.deletePost') }}
-          </button>
-        </div>
-      </div>
-      <button
-        v-else
-        class="ml-1 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-neutral-500 dark:hover:text-neutral-200"
-      >
-        <Icon name="mdi:dots-horizontal" size="20" />
-      </button>
-    </div>
+    <PostCardHeader
+      :post="post"
+      :is-owner="isOwner"
+      @edit="openEdit"
+      @delete="handleDelete"
+    />
 
     <!-- ─── Text-only body ───────────────────────────────────────────── -->
     <template v-if="!hasMedia && (cleanCaption || post.content)">
@@ -175,269 +100,16 @@
     </template>
 
     <!-- ─── Media (full-bleed) ───────────────────────────────────────── -->
-    <div v-if="hasMedia" class="relative w-full">
-      <!-- ── Single VIDEO ── -->
-      <div
-        v-if="primaryMedia?.type === 'VIDEO'"
-        class="relative w-full cursor-pointer overflow-hidden bg-black"
-        :style="videoContainerStyle"
-        @click="$emit('open-details', post)"
-      >
-        <video
-          ref="videoRef"
-          :src="primaryMedia.url"
-          :poster="primaryMedia.thumbnailUrl"
-          class="h-full w-full object-cover"
-          loop
-          playsinline
-          :muted="videoMuted"
-          preload="none"
-        />
-        <div
-          class="pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <div
-            class="flex h-12 w-12 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm"
-          >
-            <Icon name="mdi:play" size="26" class="ml-0.5 text-white" />
-          </div>
-        </div>
-        <button
-          @click.stop="toggleAllSound"
-          class="pointer-events-auto absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-colors hover:bg-black/70"
-          :class="post.bgMusic ? 'bottom-14' : 'bottom-3'"
-        >
-          <Icon
-            :name="soundEnabled ? 'mdi:volume-high' : 'mdi:volume-off'"
-            size="16"
-            class="text-white"
-          />
-        </button>
-      </div>
-
-      <!-- ── Standalone AUDIO ── -->
-      <div v-else-if="primaryMedia?.type === 'AUDIO'" class="px-3 pb-2 pt-1">
-        <AudioPlayer :src="primaryMedia.url" />
-      </div>
-
-      <!-- ── Single IMAGE ── -->
-      <div
-        v-else-if="mediaItems.length === 1 && primaryMedia?.type === 'IMAGE'"
-        class="relative w-full cursor-pointer overflow-hidden bg-gray-100 dark:bg-neutral-900"
-        :style="imageContainerStyle"
-        @click="$emit('open-details', post)"
-      >
-        <img
-          v-if="imageLoaded"
-          :src="imgFeed(primaryMedia.url)"
-          class="pointer-events-none absolute inset-0 h-full w-full scale-110 select-none object-cover opacity-30 blur-xl"
-          aria-hidden="true"
-        />
-        <img
-          :src="imgFeed(primaryMedia.url)"
-          :alt="post.caption || 'Post image'"
-          class="relative h-full w-full object-contain transition-opacity duration-300"
-          :class="imageLoaded ? 'opacity-100' : 'opacity-0'"
-          @load="onImageLoad"
-          @error="onImageError"
-        />
-        <div
-          v-if="!imageLoaded && !imageError"
-          class="absolute inset-0 animate-pulse bg-gray-200 dark:bg-neutral-800"
-        />
-        <!-- Sound button for images that have background music -->
-        <button
-          v-if="post.bgMusic"
-          @click.stop="toggleAllSound"
-          class="absolute bottom-14 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-colors hover:bg-black/70"
-        >
-          <Icon
-            :name="soundEnabled ? 'mdi:volume-high' : 'mdi:volume-off'"
-            size="16"
-            class="text-white"
-          />
-        </button>
-      </div>
-
-      <!-- ── MULTI-IMAGE COLLAGE ── -->
-      <div
-        v-else-if="mediaItems.length > 1"
-        class="w-full cursor-pointer"
-        @click="$emit('open-details', post)"
-      >
-        <!-- 2: side by side -->
-        <div v-if="mediaItems.length === 2" class="grid grid-cols-2 gap-0.5">
-          <div
-            v-for="item in mediaItems"
-            :key="item.id"
-            class="relative aspect-square overflow-hidden bg-gray-100 dark:bg-neutral-900"
-          >
-            <img
-              :src="imgFeed(item.url)"
-              class="h-full w-full object-cover"
-              :alt="post.caption || ''"
-            />
-            <div
-              v-if="item.type === 'VIDEO'"
-              class="absolute inset-0 flex items-center justify-center"
-            >
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-black/40"
-              >
-                <Icon name="mdi:play" size="18" class="ml-0.5 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 3: 1 tall left + 2 stacked right -->
-        <div
-          v-else-if="mediaItems.length === 3"
-          class="relative w-full"
-          style="aspect-ratio: 4/3"
-        >
-          <div class="absolute inset-0 grid grid-cols-2 gap-0.5">
-            <div
-              class="relative overflow-hidden bg-gray-100 dark:bg-neutral-900"
-            >
-              <img
-                :src="imgFeed(mediaItems[0]!.url)"
-                class="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-            <div class="grid grid-rows-2 gap-0.5">
-              <div
-                class="relative overflow-hidden bg-gray-100 dark:bg-neutral-900"
-              >
-                <img
-                  :src="imgFeed(mediaItems[1]!.url)"
-                  class="absolute inset-0 h-full w-full object-cover"
-                />
-              </div>
-              <div
-                class="relative overflow-hidden bg-gray-100 dark:bg-neutral-900"
-              >
-                <img
-                  :src="imgFeed(mediaItems[2]!.url)"
-                  class="absolute inset-0 h-full w-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 4: 2×2 grid -->
-        <div
-          v-else-if="mediaItems.length === 4"
-          class="grid grid-cols-2 gap-0.5"
-        >
-          <div
-            v-for="item in mediaItems"
-            :key="item.id"
-            class="relative aspect-square overflow-hidden bg-gray-100 dark:bg-neutral-900"
-          >
-            <img
-              :src="imgFeed(item.url)"
-              class="h-full w-full object-cover"
-              :alt="post.caption || ''"
-            />
-          </div>
-        </div>
-        <!-- 5+: 1 big top + row of 2 with +N badge -->
-        <div v-else class="grid grid-cols-2 gap-0.5">
-          <div
-            class="relative col-span-2 aspect-video overflow-hidden bg-gray-100 dark:bg-neutral-900"
-          >
-            <img :src="imgFeed(mediaItems[0]!.url)" class="h-full w-full object-cover" />
-          </div>
-          <div
-            class="relative aspect-square overflow-hidden bg-gray-100 dark:bg-neutral-900"
-          >
-            <img :src="imgFeed(mediaItems[1]!.url)" class="h-full w-full object-cover" />
-          </div>
-          <div
-            class="relative aspect-square overflow-hidden bg-gray-100 dark:bg-neutral-900"
-          >
-            <img :src="imgFeed(mediaItems[2]!.url)" class="h-full w-full object-cover" />
-            <div
-              v-if="mediaItems.length > 3"
-              class="absolute inset-0 flex items-center justify-center bg-black/55"
-            >
-              <span class="text-xl font-bold text-white"
-                >+{{ mediaItems.length - 3 }}</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- COMMERCE badge (seller posts only) -->
-      <div
-        v-if="isSeller && post.contentType === 'COMMERCE'"
-        class="pointer-events-none absolute left-2 top-2"
-      >
-        <span
-          class="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm"
-        >
-          <Icon name="mdi:shopping-outline" size="11" />{{
-            $t('contentType.COMMERCE')
-          }}
-        </span>
-      </div>
-
-      <!-- ── Background music strip ── -->
-      <div
-        v-if="post.bgMusic"
-        class="pointer-events-none absolute inset-x-0 bottom-0 z-10"
-      >
-        <!-- Soft gradient fade -->
-        <div
-          class="h-14 bg-gradient-to-t from-black/75 via-black/30 to-transparent"
-        />
-        <!-- Content row — pointer-events-auto so the pill is tappable -->
-        <div
-          class="pointer-events-auto flex cursor-pointer items-center gap-2.5 bg-gradient-to-r from-black/80 to-black/50 px-3 pb-3 pt-1"
-          @click.stop="toggleMusic"
-        >
-          <!-- Spinning vinyl disc -->
-          <div class="vinyl-disc shrink-0" :class="{ spinning: musicPlaying }">
-            <div class="vinyl-hole" />
-          </div>
-          <!-- Track name -->
-          <div class="min-w-0 flex-1">
-            <p
-              class="mb-[3px] text-[9px] font-medium uppercase leading-none tracking-widest text-white/50"
-            >
-              <Icon name="mdi:music-note" size="9" class="-mt-0.5 inline" />
-              {{ $t('music.backgroundMusic') }}
-            </p>
-            <div class="overflow-hidden">
-              <!-- Duplicate text creates seamless loop -->
-              <span
-                v-if="shouldScrollMusic"
-                class="marquee-text inline-block text-[11px] font-semibold leading-tight text-white"
-              >
-                {{ musicDisplayName }}&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;{{
-                  musicDisplayName
-                }}
-              </span>
-              <span
-                v-else
-                class="block truncate text-[11px] font-semibold leading-tight text-white"
-              >
-                {{ musicDisplayName }}
-              </span>
-            </div>
-          </div>
-          <!-- Equalizer bars -->
-          <div class="eq-bars shrink-0" :class="{ playing: musicPlaying }">
-            <div class="eq-bar" style="--h: 40%; --d: 0s" />
-            <div class="eq-bar" style="--h: 100%; --d: 0.12s" />
-            <div class="eq-bar" style="--h: 65%; --d: 0.07s" />
-            <div class="eq-bar" style="--h: 85%; --d: 0.18s" />
-            <div class="eq-bar" style="--h: 50%; --d: 0.03s" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <PostMediaGallery
+      v-if="hasMedia"
+      :media-items="mediaItems"
+      :post="post"
+      :sound-enabled="soundEnabled"
+      :music-playing="musicPlaying"
+      ref="mediaGalleryRef"
+      @click="$emit('open-details', post)"
+      @music-toggle="toggleAllSound"
+    />
 
     <!-- Hidden background-music audio element -->
     <audio
@@ -449,168 +121,20 @@
     />
 
     <!-- ─── Action Bar ────────────────────────────────────────────────── -->
-    <div class="px-3 pt-2">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <!-- Like -->
-          <button
-            @click.stop="handleLike"
-            class="group rounded-full p-2 focus:outline-none"
-            :aria-label="localIsLiked ? 'Unlike' : 'Like'"
-          >
-            <Icon
-              :name="localIsLiked ? 'mdi:heart' : 'mdi:heart-outline'"
-              size="25"
-              class="transition-all duration-150 group-active:scale-75"
-              :class="
-                localIsLiked
-                  ? 'text-red-500'
-                  : 'text-gray-900 dark:text-neutral-100'
-              "
-            />
-          </button>
-          <!-- Comment -->
-          <button
-            @click.stop="$emit('open-comments', post)"
-            class="group rounded-full p-2 focus:outline-none"
-            aria-label="Comment"
-          >
-            <Icon
-              name="mdi:comment-outline"
-              size="23"
-              class="text-gray-900 transition-transform group-active:scale-75 dark:text-neutral-100"
-            />
-          </button>
-          <!-- Share -->
-          <button
-            @click.stop="sharePost"
-            class="group rounded-full p-2 focus:outline-none"
-            aria-label="Share"
-          >
-            <Icon
-              name="mdi:send-outline"
-              size="22"
-              class="-rotate-12 text-gray-900 transition-transform group-active:scale-75 dark:text-neutral-100"
-            />
-          </button>
-        </div>
-        <!-- Bookmark -->
-        <button
-          @click.stop="handleBookmark"
-          class="group rounded-full p-2 focus:outline-none"
-          :aria-label="isBookmarked ? 'Remove bookmark' : 'Save'"
-        >
-          <Icon
-            :name="isBookmarked ? 'mdi:bookmark' : 'mdi:bookmark-outline'"
-            size="25"
-            class="text-gray-900 transition-all group-active:scale-75 dark:text-neutral-100"
-          />
-        </button>
-      </div>
-
-      <!-- Like count + View count -->
-      <div class="flex items-center justify-between px-1">
-        <button
-          v-if="localLikeCount > 0"
-          class="text-left text-[13px] font-semibold leading-snug text-gray-900 transition-opacity hover:opacity-70 dark:text-neutral-100"
-          @click.stop="showLikes = true"
-        >
-          {{ localLikeCount.toLocaleString() }}
-          {{ localLikeCount === 1 ? $t('post.like') : $t('post.likes') }}
-        </button>
-        <span v-else />
-        <span
-          v-if="post.viewCount"
-          class="flex items-center gap-1 text-[11px] text-gray-400 dark:text-neutral-500"
-        >
-          <Icon name="mdi:eye-outline" size="14" />
-          {{ post.viewCount.toLocaleString() }}
-        </span>
-      </div>
-
-      <LikesModal
-        :is-open="showLikes"
-        type="post"
-        :target-id="post.id"
-        @close="showLikes = false"
-      />
-
-      <!-- Caption (media posts) -->
-      <div
-        v-if="hasMedia && (cleanCaption || post.content)"
-        class="mt-0.5 px-0"
-      >
-        <p class="text-[13px] leading-snug text-gray-900 dark:text-neutral-100">
-          <NuxtLink
-            :to="`/profile/${post.author?.username}`"
-            class="mr-1 font-semibold transition-opacity hover:opacity-75"
-            >{{ post.author?.username }}</NuxtLink
-          >
-          <span
-            class="cursor-pointer"
-            :class="isCaptionLong && !textExpanded ? 'line-clamp-2' : ''"
-            @click.stop="$emit('open-details', post)"
-            >{{ cleanCaption || post.content }}</span
-          >
-          <button
-            v-if="isCaptionLong && !textExpanded"
-            class="ml-0.5 text-gray-400 dark:text-neutral-500"
-            @click.stop="textExpanded = true"
-          >
-            {{ $t('common.more') }}
-          </button>
-        </p>
-      </div>
-
-      <!-- Hashtags -->
-      <div v-if="hashtags.length > 0" class="mt-1 flex flex-wrap gap-x-1.5 gap-y-1 px-1">
-        <NuxtLink
-          v-for="(tag, i) in hashtags"
-          :key="i"
-          :to="`/discover?tab=tags&tagName=${tag.slice(1)}`"
-          class="text-[13px] font-semibold text-brand transition-opacity hover:opacity-70 dark:text-pink-400"
-          @click.stop
-        >{{ tag }}</NuxtLink>
-      </div>
-
-      <!-- View all comments -->
-      <button
-        v-if="post.commentCount > 0"
-        @click.stop="$emit('open-comments', post)"
-        class="mt-0.5 block px-1 text-[12px] text-gray-400 transition-colors hover:text-gray-600 dark:text-neutral-500 dark:hover:text-neutral-300"
-      >
-        {{ $t('post.viewAll') }} {{ post.commentCount }}
-        {{ post.commentCount === 1 ? $t('post.comment') : $t('post.comments') }}
-      </button>
-
-      <!-- Tagged Products (commerce shop strip) -->
-      <div v-if="hasTaggedProducts" class="mt-2 px-1">
-        <div class="mb-1 flex items-center gap-1">
-          <Icon
-            name="mdi:shopping-outline"
-            size="13"
-            class="text-emerald-500"
-          />
-          <span
-            class="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400"
-          >
-            {{ $t('post.shopThisPost') }}
-          </span>
-        </div>
-        <TaggedProductsDisplay
-          :products="taggedProducts"
-          :content-type="post.contentType"
-          @select-product="(id) => emit('open-product', id)"
-        />
-      </div>
-
-      <!-- Timestamp -->
-      <p
-        class="mt-1 px-1 pb-2.5 text-[11px] uppercase tracking-wide text-gray-400 dark:text-neutral-600"
-      >
-        {{ timeAgo(post?.created_at) }}
-      </p>
-    </div>
+    <PostCardActions
+      :post="post"
+      :local-is-liked="localIsLiked"
+      :local-like-count="localLikeCount"
+      :is-bookmarked="isBookmarked"
+      :has-media="hasMedia"
+      @like="handleLike"
+      @bookmark="handleBookmark"
+      @comment="$emit('open-comments', post)"
+      @share="sharePost"
+      @open-likes="showLikes = true"
+      @open-details="$emit('open-details', post)"
+      @open-product="(id) => emit('open-product', id)"
+    />
   </article>
 
   <!-- Edit modal (mounted outside article to avoid z-index issues) -->
@@ -627,15 +151,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePost } from '../composables/usePost'
 import { usePostStore } from '../store/post.store'
 import { notify } from '@kyvg/vue3-notification'
-import FollowButton from '~~/layers/profile/app/components/FollowButton.vue'
-import LikesModal from '~~/layers/social/app/components/modals/LikesModal.vue'
-import { imgFeed } from '~~/layers/core/app/utils/cloudinary'
-import TaggedProductsDisplay from './TaggedProductsDisplay.vue'
 import PostEditModal from './modals/PostEditModal.vue'
-import AudioPlayer from './AudioPlayer.vue'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
-import Avatar from '~~/layers/profile/app/components/Avatar.vue'
+import PostCardHeader from './post-card/PostCardHeader.vue'
+import PostMediaGallery from './post-card/PostMediaGallery.vue'
+import PostCardActions from './post-card/PostCardActions.vue'
 
 const { t } = useI18n()
 
@@ -652,7 +173,8 @@ const postStore = usePostStore()
 const { likePost, unlikePost, savePost, unsavePost, deletePost } = usePost()
 const { trackPost } = useViewTracker()
 const cardRef = ref<HTMLElement | null>(null)
-const videoRef = ref<HTMLVideoElement | null>(null)
+const mediaGalleryRef = ref<InstanceType<typeof PostMediaGallery> | null>(null)
+const videoRef = computed(() => mediaGalleryRef.value?.videoRef ?? null)
 const musicRef = ref<HTMLAudioElement | null>(null)
 const observer = ref<IntersectionObserver | null>(null)
 const musicObserver = ref<IntersectionObserver | null>(null)
@@ -988,14 +510,43 @@ onMounted(() => {
 
 // ─── Video + Music autoplay on scroll ─────────────────────────────────────────
 onMounted(() => {
+  // ── Phase 1: Pre-enter preload ──────────────────────────────────────────────
+  // When the card is ~400px from entering the viewport, tell the gallery to
+  // upgrade the video from preload="none" → preload="metadata". The browser
+  // fetches a few KB (duration, dimensions, first keyframe) so that when the
+  // card actually enters view, playback starts near-instantly instead of
+  // freezing on a black frame while the connection warms up.
+  // Fires once then immediately disconnects to avoid keeping an observer alive
+  // for the full lifetime of the card.
+  if (cardRef.value && hasMedia.value) {
+    const preloadObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry!.isIntersecting) {
+          mediaGalleryRef.value?.activateVideo()
+          preloadObserver.disconnect()
+        }
+      },
+      { rootMargin: '400px 0px', threshold: 0 },
+    )
+    preloadObserver.observe(cardRef.value)
+    onUnmounted(() => preloadObserver.disconnect())
+  }
+
+  // ── Phase 2: In-viewport play ──────────────────────────────────────────────
   // Video observer
   if (videoRef.value) {
     // Apply initial muted state imperatively — :muted binding isn't always reliable
     videoRef.value.muted = !soundEnabled.value || !!props.post.bgMusic
     observer.value = new IntersectionObserver(
       ([entry]) => {
-        if (entry!.isIntersecting) videoRef.value?.play().catch(() => {})
-        else videoRef.value?.pause()
+        if (entry!.isIntersecting) {
+          // Respect slow-network opt-in: don't autoplay unless user said OK
+          if (mediaGalleryRef.value?.canAutoplay !== false) {
+            videoRef.value?.play().catch(() => {})
+          }
+        } else {
+          videoRef.value?.pause()
+        }
       },
       { threshold: 0.5 },
     )
@@ -1030,89 +581,3 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
-/* ── Vinyl disc ─────────────────────────────────────────────────── */
-.vinyl-disc {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: conic-gradient(
-    #1c1c1c 0deg,
-    #333 45deg,
-    #1c1c1c 90deg,
-    #2a2a2a 135deg,
-    #1c1c1c 180deg,
-    #333 225deg,
-    #1c1c1c 270deg,
-    #2a2a2a 315deg,
-    #1c1c1c 360deg
-  );
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow:
-    0 0 0 3px rgba(244, 114, 182, 0.15),
-    inset 0 0 8px rgba(0, 0, 0, 0.6);
-}
-.vinyl-disc.spinning {
-  animation: vinylSpin 3s linear infinite;
-}
-.vinyl-hole {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, #fb7185, #e11d48);
-  box-shadow: 0 0 6px rgba(244, 114, 182, 0.9);
-}
-
-/* ── Equalizer bars ─────────────────────────────────────────────── */
-.eq-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 16px;
-}
-.eq-bar {
-  width: 3px;
-  height: var(--h);
-  background: linear-gradient(to top, #f43f5e, #fb923c);
-  border-radius: 2px;
-  transition: height 0.4s ease;
-}
-.eq-bars.playing .eq-bar {
-  animation: eqBounce 0.65s ease-in-out var(--d) infinite alternate;
-}
-
-/* ── Marquee text ───────────────────────────────────────────────── */
-.marquee-text {
-  animation: marquee 9s linear infinite;
-  padding-right: 3rem;
-}
-
-/* ── Keyframes ──────────────────────────────────────────────────── */
-@keyframes vinylSpin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes eqBounce {
-  from {
-    height: 18%;
-  }
-  to {
-    height: var(--h);
-  }
-}
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-</style>

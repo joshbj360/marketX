@@ -4,6 +4,7 @@
 import crypto from 'crypto'
 import { notificationQueue } from '~~/server/queues/notification.queue'
 import { walletService } from '../../../services/wallet.service'
+import { squareService } from '~~/layers/square/server/services/square.service'
 
 async function notifySellers(orderId: number) {
   const items = await prisma.orderItem.findMany({
@@ -62,15 +63,33 @@ export default defineEventHandler(async (event) => {
     const order = await prisma.orders.findUnique({
       where: { paymentRef: reference },
     })
-    if (order && order.paymentStatus !== 'PAID') {
-      await prisma.orders.update({
-        where: { id: order.id },
-        data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
-      })
-      notifySellers(order.id).catch((e) => console.error('[webhook notify]', e))
-      walletService
-        .creditSellersOnPayment(order.id)
-        .catch((e) => console.error('[webhook wallet]', e))
+
+    if (order) {
+      if (order.paymentMethod === 'pay_on_delivery') {
+        // POD: shipping fee payment — atomic update guards against duplicate delivery
+        const { count } = await prisma.orders.updateMany({
+          where: { id: order.id, paymentStatus: { in: ['UNPAID', 'PENDING'] } },
+          data: { paymentStatus: 'SHIPPING_PAID', status: 'CONFIRMED' },
+        })
+        if (count > 0) {
+          notifySellers(order.id).catch((e) => logger.error('Webhook POD notify failed', { orderId: order.id, error: e?.message ?? e }))
+        }
+      } else {
+        // Online payment: full amount paid — atomic update guards against duplicate delivery
+        const { count } = await prisma.orders.updateMany({
+          where: { id: order.id, paymentStatus: { notIn: ['PAID', 'FAILED'] } },
+          data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
+        })
+        if (count > 0) {
+          notifySellers(order.id).catch((e) => logger.error('Webhook notify failed', { orderId: order.id, error: e?.message ?? e }))
+          walletService
+            .creditSellersOnPayment(order.id)
+            .catch((e) => logger.error('Webhook wallet credit failed', { orderId: order.id, error: e?.message ?? e }))
+          squareService
+            .creditAssociationsForOrder(order.id)
+            .catch((e) => logger.error('Webhook association credit failed', { orderId: order.id, error: e?.message ?? e }))
+        }
+      }
     }
   }
 

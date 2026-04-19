@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
         statusCode: error.status,
         statusMessage: error.message,
       })
-    console.error('[DELETE /api/commerce/products/:id]', error)
+    logger.error('[DELETE /api/commerce/products/:id]', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal server error',

@@ -44,6 +44,7 @@
       <CategoryListMobile class="-mx-2 mb-3 sm:-mx-4" />
 
       <!-- Stories Section (Logged-in users only, hidden when showStories is off) -->
+      <ClientOnly>
       <section
         v-if="profileStore.isLoggedIn && settings.showStories"
         class="pb-1"
@@ -133,8 +134,10 @@
           </div>
         </div>
       </section>
+      </ClientOnly>
 
       <!-- Affiliate Program Banner (logged-in, not yet enrolled) -->
+      <ClientOnly>
       <section v-if="profileStore.isLoggedIn && !isEnrolled">
         <NuxtLink
           :to="`/profile/${profileStore.me?.username}?tab=affiliate`"
@@ -161,6 +164,7 @@
           </div>
         </NuxtLink>
       </section>
+      </ClientOnly>
 
       <!-- Near Me — optional via settings -->
       <section v-if="settings.showNearMe">

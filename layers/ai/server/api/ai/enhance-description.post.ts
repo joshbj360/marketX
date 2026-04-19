@@ -72,7 +72,7 @@ Rules:
     const status = err?.status || err?.statusCode || 500
     const detail =
       err?.data?.error?.message || err?.data?.message || err?.message || 'Unknown error'
-    console.error(`[POST /api/ai/enhance-description] ${status}: ${detail}`)
+    logger.error(`[POST /api/ai/enhance-description] ${status}: ${detail}`)
     throw createError({ statusCode: status, statusMessage: `AI enhancement failed: ${detail}` })
   }
 })

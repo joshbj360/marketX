@@ -9,9 +9,9 @@
         <Icon :name="isHome ? 'mdi:home' : 'mdi:home-outline'" size="26" />
       </NuxtLink>
 
-      <!-- Discover -->
-      <NuxtLink to="/discover" class="nav-item" active-class="active">
-        <Icon name="mdi:compass-outline" size="26" />
+      <!-- Near Me -->
+      <NuxtLink to="/map" class="nav-item" active-class="active">
+        <Icon name="mdi:map-marker-radius-outline" size="26" />
       </NuxtLink>
 
       <!-- Create (centre CTA) — logged in: open create modal; guest: go to register -->
@@ -43,9 +43,12 @@
         </template>
       </ClientOnly>
 
-      <!-- Map -->
-      <NuxtLink to="/map" class="nav-item" active-class="active">
-        <Icon name="mdi:map-marker-radius-outline" size="26" />
+      <!-- Squares -->
+      <NuxtLink to="/squares" class="nav-item" active-class="active">
+        <Icon
+          :name="isSquares ? 'mdi:storefront' : 'mdi:storefront-outline'"
+          size="26"
+        />
       </NuxtLink>
 
       <!-- Profile -->
@@ -146,6 +149,7 @@ const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
 const isHome = computed(() => route.path === '/')
+const isSquares = computed(() => route.path.startsWith('/squares'))
 const isProfileActive = computed(
   () => route.path.startsWith('/profile') || route.path.startsWith('/seller'),
 )

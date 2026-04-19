@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
     return { success: true, data: rates }
   } catch (err: any) {
     // Provider API unavailable or not configured — fall back to flat rates
-    console.warn(
+    logger.warn(
       `[shipping/rates] ${provider.name} failed (${err?.message ?? err}), falling back to GlobalShippingZone`,
     )
     return { success: true, data: [], fallback: true }

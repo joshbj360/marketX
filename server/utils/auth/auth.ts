@@ -36,26 +36,28 @@ export interface TokenPayload {
   userId: string
   email: string
   role: string
+  sessionId?: string
   iat?: number
   exp?: number
+}
+
+export function generateRefreshToken(userId: string): string {
+  return jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' })
 }
 
 export function generateTokens(
   userId: string,
   email?: string,
   role: string = 'user',
+  sessionId?: string,
 ) {
   const accessToken = jwt.sign(
-    { userId, email, role },
+    { userId, email, role, ...(sessionId ? { sessionId } : {}) },
     JWT_SECRET,
-    { expiresIn: '24h' }, // 24 hours
+    { expiresIn: '24h' },
   )
 
-  const refreshToken = jwt.sign(
-    { userId },
-    JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }, // 7 days
-  )
+  const refreshToken = generateRefreshToken(userId)
 
   return { accessToken, refreshToken }
 }

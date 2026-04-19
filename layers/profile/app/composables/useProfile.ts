@@ -2,6 +2,7 @@
 
 import { useProfileApi } from '../services/profile.api'
 import { useProfileStore } from '../stores/profile.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 
 export const useProfile = () => {
   const profileApi = useProfileApi()
@@ -27,7 +28,7 @@ export const useProfile = () => {
 
       return result
     } catch (err: any) {
-      profileStore.error = err.message || 'Failed to fetch profile'
+      profileStore.error = extractErrorMessage(err, 'Failed to fetch profile')
     } finally {
       profileStore.isLoading = false
     }
@@ -46,7 +47,7 @@ export const useProfile = () => {
       }
       return result
     } catch (err: any) {
-      profileStore.error = err.message || 'User not found'
+      profileStore.error = extractErrorMessage(err, 'User not found')
     } finally {
       profileStore.isLoading = false
     }
@@ -59,7 +60,7 @@ export const useProfile = () => {
       profileStore.setPrivateProfile(result.data) // Updates "Me" and Cache
       return result
     } catch (err: any) {
-      profileStore.error = err.message || 'Update failed'
+      profileStore.error = extractErrorMessage(err, 'Update failed')
       throw err
     } finally {
       profileStore.isLoading = false
@@ -91,7 +92,7 @@ export const useProfile = () => {
 
       return result
     } catch (e: any) {
-      profileStore.setError(e.message || 'Failed to fetch stats')
+      profileStore.setError(extractErrorMessage(e, 'Failed to fetch stats'))
       throw e
     } finally {
       profileStore.setLoading(false)

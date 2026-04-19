@@ -1,5 +1,6 @@
 import { useNotificationApi } from '../services/notification.api'
 import { useNotificationStore } from '../stores/notification.store'
+import { extractErrorMessage } from '~~/layers/core/app/utils/errors'
 
 export const useNotifications = () => {
   const notificationApi = useNotificationApi()
@@ -18,7 +19,7 @@ export const useNotifications = () => {
       return result
     } catch (error: unknown) {
       notificationStore.setError(
-        error instanceof Error ? error.message : 'Failed to fetch notifications',
+        extractErrorMessage(error, 'Failed to fetch notifications'),
       )
       throw error
     } finally {
@@ -32,7 +33,9 @@ export const useNotifications = () => {
       notificationStore.markAsRead(id)
       return true
     } catch (error: unknown) {
-      notificationStore.setError(error instanceof Error ? error.message : 'Failed to mark as read')
+      notificationStore.setError(
+        extractErrorMessage(error, 'Failed to mark as read'),
+      )
       throw error
     }
   }

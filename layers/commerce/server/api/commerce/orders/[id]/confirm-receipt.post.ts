@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     if (order.paymentStatus === 'PAID') {
       walletService
         .releaseFundsOnDelivery(id)
-        .catch((e) => console.error('[confirm-receipt wallet release]', e))
+        .catch((e) => logger.error('[confirm-receipt wallet release]', e))
     }
 
     // Notify each unique seller (non-blocking)
@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
           actorId: user.id,
           message: `Buyer confirmed receipt of order #${id}. Funds have been released to your wallet.`,
         })
-        .catch((e) => console.error('[notify seller receipt]', e))
+        .catch((e) => logger.error('[notify seller receipt]', e))
     }
 
     return {
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
       data: { message: 'Receipt confirmed. Funds released to seller.' },
     }
   } catch (error: any) {
-    console.error('[confirm-receipt]', error)
+    logger.error('[confirm-receipt]', error)
     if (error instanceof UserError)
       throw createError({
         statusCode: error.status,
