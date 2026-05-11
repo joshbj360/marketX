@@ -42,7 +42,7 @@ export interface TokenPayload {
 }
 
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' })
+  return jwt.sign({ userId, jti: crypto.randomUUID() }, JWT_REFRESH_SECRET, { expiresIn: '7d' })
 }
 
 export function generateTokens(

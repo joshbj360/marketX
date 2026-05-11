@@ -15,7 +15,14 @@ const schema = z.object({
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = schema.parse(await readBody(event))
+    const parsed = schema.safeParse(await readBody(event))
+    if (!parsed.success) {
+      const first = parsed.error.errors[0]
+      const field = first?.path?.[0] ? `${first.path[0]}: ` : ''
+      throw createError({ statusCode: 400, statusMessage: `${field}${first?.message ?? 'Invalid input'}` })
+    }
+
+    const body = parsed.data
     const ipAddress = getRequestIP(event, { xForwardedFor: true }) || '127.0.0.1'
     const userAgent = getRequestHeader(event, 'user-agent') || 'Unknown'
 
