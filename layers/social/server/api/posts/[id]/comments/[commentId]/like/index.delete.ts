@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: error.message,
       })
     }
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     throw createError({ statusCode: 500, statusMessage: 'Server error' })
   }
 })

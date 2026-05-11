@@ -36,14 +36,9 @@ export default defineEventHandler(async (event) => {
     return { success: true, data: result }
   } catch (error: any) {
     if (error instanceof UserError)
-      throw createError({
-        statusCode: error.status,
-        statusMessage: error.message,
-      })
+      throw createError({ statusCode: error.status, statusMessage: error.message })
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     logger.error('[DELETE /api/commerce/products/:id]', error)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Internal server error',
-    })
+    throw createError({ statusCode: 500, statusMessage: 'Internal server error' })
   }
 })

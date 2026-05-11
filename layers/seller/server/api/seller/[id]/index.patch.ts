@@ -1,6 +1,7 @@
 // FILE PATH: server/layers/seller/api/[id].patch.ts
 
 import { defineEventHandler, readBody } from 'h3'
+import { ZodError } from 'zod'
 import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
 import { sellerService } from '../../../services/seller.services'
 import { updateSellerProfileSchema } from '../../../schemas/seller.schema'
@@ -52,12 +53,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (error instanceof Error && error.message.includes('Unauthorized')) {
-      throw createError({
-        statusCode: error.message.includes('Cannot update') ? 403 : 401,
-        statusMessage: error.message,
-      })
-    }
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
 
     logger.error('[PATCH /api/seller/:id]', error)
     throw createError({

@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test'
-import { uniqueEmail, uniqueUsername } from '../../../../../../tests/helpers/auth'
+import { resetRateLimits, uniqueEmail, uniqueUsername } from '../../../../../../tests/helpers/auth'
 
 const ENDPOINT = '/api/auth/register'
+
+test.beforeAll(async ({ request }) => {
+  await resetRateLimits(request)
+})
 
 // ─── Happy path ────────────────────────────────────────────────────────────────
 

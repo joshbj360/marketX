@@ -62,19 +62,11 @@ export default defineEventHandler(async (event) => {
     return { success: true, data: result }
   } catch (error: unknown) {
     if (error instanceof UserError)
-      throw createError({
-        statusCode: error.status,
-        statusMessage: error.message,
-      })
+      throw createError({ statusCode: error.status, statusMessage: error.message })
     if (error instanceof ZodError)
-      throw createError({
-        statusCode: 422,
-        statusMessage: error.errors[0]?.message ?? 'Validation error',
-      })
+      throw createError({ statusCode: 422, statusMessage: error.errors[0]?.message ?? 'Validation error' })
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     logger.error('[POST /api/commerce/products]', error)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Internal server error',
-    })
+    throw createError({ statusCode: 500, statusMessage: 'Internal server error' })
   }
 })

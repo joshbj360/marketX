@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
     const result = await contentService.getMyShares(user.userId, limit, offset)
     return { success: true, data: result }
   } catch (error: any) {
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     throw createError({ statusCode: 500, statusMessage: 'Server error' })
   }
 })

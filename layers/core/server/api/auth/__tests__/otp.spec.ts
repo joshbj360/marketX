@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test'
-import { uniqueEmail } from '../../../../../../tests/helpers/auth'
+import { resetRateLimits, uniqueEmail } from '../../../../../../tests/helpers/auth'
 
 const SEND = '/api/auth/checkout-otp/send'
+
+test.beforeAll(async ({ request }) => {
+  await resetRateLimits(request)
+})
 const VERIFY = '/api/auth/checkout-otp/verify'
 
 // ─── Send OTP ─────────────────────────────────────────────────────────────────
