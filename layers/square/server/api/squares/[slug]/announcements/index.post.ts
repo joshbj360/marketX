@@ -1,9 +1,9 @@
 // POST /api/squares/:slug/announcements
 // Officers only (CHAIRMAN, SECRETARY, MODERATOR)
-// Notifies all square followers via createMany
 
 import { prisma } from '~~/server/utils/db'
 import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
+import { notificationQueue } from '~~/server/queues/notification.queue'
 import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -65,22 +65,19 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  // Notify all followers (cap at 500 to avoid long-running requests)
+  // Notify all followers via queue (enables SSE push; cap at 500)
   const followers = await prisma.userSquareFollow.findMany({
     where: { squareId: square.id },
     select: { userId: true },
     take: 500,
   })
 
-  if (followers.length) {
-    await prisma.notification.createMany({
-      data: followers.map((f) => ({
-        userId: f.userId,
-        type: 'SQUARE_ANNOUNCEMENT',
-        actorId: user.id,
-        message: `📢 ${square.name}: ${body.title}`,
-      })),
-      skipDuplicates: true,
+  for (const f of followers) {
+    notificationQueue.enqueue({
+      userId: f.userId,
+      type: 'SQUARE_ANNOUNCEMENT',
+      actorId: user.id,
+      message: `📢 ${square.name}: ${body.title}`,
     })
   }
 

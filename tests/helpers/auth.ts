@@ -106,17 +106,36 @@ export async function resetRateLimits(
 }
 
 /**
- * Returns the first variant ID for a seed product.
- * Uses the by-slug endpoint so no hardcoded DB IDs.
+ * Resolves a product slug that exists in the test DB.
+ * Tries the seed slug first (fast path), then falls back to the first product in the list.
+ */
+export async function getFirstProductSlug(
+  request: APIRequestContext,
+  preferred = 'adire-tie-dye-maxi-dress',
+): Promise<string> {
+  const probe = await request.get(`/api/commerce/products/by-slug/${preferred}`)
+  if (probe.ok()) return preferred
+
+  const listRes = await request.get('/api/commerce/products?limit=1')
+  const body = await listRes.json()
+  const slug = body.data?.products?.[0]?.slug as string | undefined
+  if (!slug) throw new Error('No products in test DB — run: npx prisma db seed')
+  return slug
+}
+
+/**
+ * Returns the first variant ID for a product that exists in the test DB.
+ * Uses getFirstProductSlug so the slug is always valid.
  */
 export async function getFirstVariantId(
   request: APIRequestContext,
-  slug = 'adire-tie-dye-maxi-dress',
+  slug?: string,
 ): Promise<number> {
-  const res = await request.get(`/api/commerce/products/by-slug/${slug}`)
+  const resolvedSlug = slug ?? await getFirstProductSlug(request)
+  const res = await request.get(`/api/commerce/products/by-slug/${resolvedSlug}`)
   const body = await res.json()
   const id = body.data?.variants?.[0]?.id
-  if (!id) throw new Error(`No variant found for slug "${slug}"`)
+  if (!id) throw new Error(`No variant found for slug "${resolvedSlug}"`)
   return id as number
 }
 

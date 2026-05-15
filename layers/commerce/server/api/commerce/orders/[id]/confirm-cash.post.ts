@@ -60,9 +60,10 @@ export default defineEventHandler(async (event) => {
       data: { paymentStatus: 'PAID', status: 'DELIVERED' },
     })
 
-    // Credit seller wallet (product amount — shipping was already collected upfront)
+    // Credit seller wallet then immediately release (POD: payment and delivery are simultaneous)
     walletService
       .creditSellersOnPayment(id)
+      .then(() => walletService.releaseFundsOnDelivery(id))
       .catch((e) => logger.logError('[confirm-cash wallet]', e))
 
     // Notify buyer

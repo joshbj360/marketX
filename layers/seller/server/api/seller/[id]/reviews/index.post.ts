@@ -2,6 +2,9 @@
 import { z } from 'zod'
 import { prisma } from '~~/server/utils/db'
 import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
+import { notificationQueue } from '~~/server/queues/notification.queue'
+import { emailQueue } from '~~/server/queues/email.queue'
+import { buildReviewReceivedEmail } from '~~/server/utils/email/emailService'
 
 const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -16,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const seller = await prisma.sellerProfile.findUnique({
     where: { store_slug: slug },
-    select: { id: true },
+    select: { id: true, profileId: true, store_name: true },
   })
   if (!seller) throw createError({ statusCode: 404, statusMessage: 'Seller not found' })
 
@@ -79,6 +82,24 @@ export default defineEventHandler(async (event) => {
       totalReviews: agg._count,
     },
   })
+
+  // Notify + email seller (non-blocking, skip self-review)
+  if (seller.profileId && seller.profileId !== user.id) {
+    const storeName = seller.store_name || 'your store'
+    notificationQueue.enqueue({
+      userId: seller.profileId,
+      type: 'PRODUCT_REVIEW',
+      actorId: user.id,
+      message: `You received a ${body.rating}-star review on ${storeName}.`,
+    })
+    prisma.user.findUnique({ where: { id: seller.profileId }, select: { email: true } })
+      .then((su) => {
+        if (!su?.email) return
+        const { subject, html, text } = buildReviewReceivedEmail(storeName, body.rating, body.title)
+        emailQueue.enqueue({ to: su.email, subject, html, text, type: 'GENERAL' })
+      })
+      .catch(() => {})
+  }
 
   return { success: true, data: review }
 })

@@ -18,7 +18,7 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
-        <button @click="$emit('open-cart')" class="header-button">
+        <button @click="$emit('open-cart')" aria-label="Cart" class="header-button">
           <div class="relative">
             <Icon name="mdi:shopping-outline" size="26" />
             <span
@@ -28,7 +28,7 @@
             >
           </div>
         </button>
-        <NuxtLink to="/discover" class="header-button">
+        <NuxtLink to="/discover" class="header-button" aria-label="Search">
           <Icon name="mdi:magnify" size="24" />
         </NuxtLink>
 
@@ -36,6 +36,7 @@
           <button
             v-if="profileStore.isLoggedIn"
             @click="$emit('open-notifications')"
+            aria-label="Notifications"
             class="header-button relative"
           >
             <Icon name="mdi:bell-outline" size="24" />

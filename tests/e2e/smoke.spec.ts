@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { pageLogin, TEST_USER, apiLogin, clearCart, getFirstVariantId } from '../helpers/auth'
+import { pageLogin, TEST_USER, apiLogin, clearCart, getFirstVariantId, getFirstProductSlug } from '../helpers/auth'
 
-const PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
+let PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
 
 test.describe('smoke — critical user journey', () => {
+  test.beforeAll(async ({ request }) => {
+    PRODUCT_SLUG = await getFirstProductSlug(request)
+  })
+
   test('guest sees market home', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByText("Today's deals")).toBeVisible({ timeout: 15000 })

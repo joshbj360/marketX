@@ -249,6 +249,10 @@ export const productRepository = {
       storeSlug?: string
       isThrift?: boolean
       categorySlug?: string
+      minDiscount?: number
+      minPrice?: number
+      maxPrice?: number
+      sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'popular'
     },
     pagination: { limit: number; offset: number },
   ) {
@@ -266,12 +270,30 @@ export const productRepository = {
         { description: { contains: filters.search, mode: 'insensitive' } },
       ]
     }
+    if (filters.minDiscount && filters.minDiscount > 0) {
+      where.discount = { gte: filters.minDiscount }
+    }
+    if (filters.minPrice != null || filters.maxPrice != null) {
+      where.price = {}
+      if (filters.minPrice != null) where.price.gte = filters.minPrice
+      if (filters.maxPrice != null) where.price.lte = filters.maxPrice
+    }
+
+    const orderByMap = {
+      newest:    { created_at: 'desc' as const },
+      price_asc: { price: 'asc' as const },
+      price_desc: { price: 'desc' as const },
+      // popular sorts by like count — Prisma orderBy on _count relation
+      popular:   { likes: { _count: 'desc' as const } },
+    }
+    const orderBy = orderByMap[filters.sortBy ?? 'newest']
+
     return prisma.products.findMany({
       where,
       include: productFeedInclude,
       take: pagination.limit,
       skip: pagination.offset,
-      orderBy: { created_at: 'desc' },
+      orderBy,
     })
   },
 

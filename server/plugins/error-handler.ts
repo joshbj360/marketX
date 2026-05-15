@@ -13,20 +13,28 @@ export default defineNitroPlugin((nitroApp) => {
     if (statusCode < 500) return
 
     const requestId = event.context?.requestId as string | undefined
-    const user = event.context?.user as { id?: string; email?: string } | undefined
+    const user = event.context?.user as
+      | { id?: string; email?: string }
+      | undefined
     const method: string = event.method ?? event.node?.req?.method ?? 'UNKNOWN'
     const path: string = event.path ?? event.node?.req?.url ?? 'UNKNOWN'
 
-    const frames = error instanceof Error
-      ? error.stack?.split('\n').slice(1, 9).map((l: string) => l.trim()).filter(Boolean)
-      : undefined
+    const frames =
+      error instanceof Error
+        ? error.stack
+            ?.split('\n')
+            .slice(1, 9)
+            .map((l: string) => l.trim())
+            .filter(Boolean)
+        : undefined
 
     logger.error(`[${method}] ${path} → ${statusCode}`, {
       requestId,
       userId: user?.id,
       userEmail: user?.email,
       statusCode,
-      errorMessage: error instanceof Error ? error.message : String(error ?? 'unknown'),
+      errorMessage:
+        error instanceof Error ? error.message : String(error ?? 'unknown'),
       errorName: error instanceof Error ? error.name : undefined,
       stack: frames,
     })

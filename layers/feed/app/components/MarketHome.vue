@@ -70,6 +70,14 @@
         />
       </div>
 
+      <!-- Empty / error state — API failed or no squares seeded -->
+      <p
+        v-else-if="!squaresLoading && !squares.length"
+        class="text-xs text-gray-400 dark:text-neutral-500"
+      >
+        No squares yet
+      </p>
+
       <div
         v-else-if="squares.length"
         class="scrollbar-hide -mx-1 flex gap-3 overflow-x-auto px-1 pb-1"

@@ -6,6 +6,11 @@ export default defineEventHandler(async (event) => {
   try {
     await optionalAuth(event)
     const query = getQuery(event)
+    const minDiscount = query.minDiscount ? Number(query.minDiscount) : undefined
+    const minPrice    = query.minPrice    ? Number(query.minPrice)    : undefined
+    const maxPrice    = query.maxPrice    ? Number(query.maxPrice)    : undefined
+    const sortBy      = query.sortBy as 'newest' | 'price_asc' | 'price_desc' | 'popular' | undefined
+
     const result = await productService.getProducts(
       {
         status: query.status as string,
@@ -13,6 +18,10 @@ export default defineEventHandler(async (event) => {
         sellerId: query.sellerId as string,
         isThrift: query.isThrift,
         categorySlug: query.categorySlug as string,
+        minDiscount,
+        minPrice,
+        maxPrice,
+        sortBy,
       },
       { limit: query.limit, offset: query.offset },
     )

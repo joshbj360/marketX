@@ -15,6 +15,7 @@
           >
             <button
               @click="handleClose()"
+              aria-label="Close"
               class="rounded-full p-2 transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
             >
               <Icon
@@ -124,6 +125,7 @@
                   <!-- Remove -->
                   <button
                     @click="removeMediaItem(idx)"
+                    :aria-label="`Remove media ${idx + 1}`"
                     class="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <Icon name="mdi:close" size="14" class="text-white" />
@@ -215,6 +217,7 @@
                 </div>
                 <button
                   @click="removeMusic"
+                  aria-label="Remove music"
                   class="rounded-full p-1 transition-colors hover:bg-pink-100 dark:hover:bg-pink-900/30"
                 >
                   <Icon
@@ -236,7 +239,10 @@
                 >
                   <Icon name="mdi:tag-outline" size="12" class="text-brand" />
                   <span class="font-medium text-brand">{{ product.name }}</span>
-                  <button @click="removeProduct(product.id)">
+                  <button
+                    @click="removeProduct(product.id)"
+                    :aria-label="`Remove ${product.name}`"
+                  >
                     <Icon
                       name="mdi:close-circle"
                       size="14"

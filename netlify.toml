@@ -7,6 +7,7 @@
   # NUXT_PUBLIC_* vars are intentionally embedded in client-side bundles.
   # RATE_LIMIT_* are plain numeric config values, not credentials.
   # CLOUDINARY_CLOUD_NAME is part of public Cloudinary URLs.
+  NODE_ENV = "production"
   SECRETS_SCAN_OMIT_KEYS = "NUXT_PUBLIC_BASE_URL,NUXT_PUBLIC_SITE_NAME,CLOUDINARY_CLOUD_NAME,CLOUDINARY_UPLOAD_PRESET,PAYSTACK_PUBLIC_KEY,RATE_LIMIT_REFRESH_TOKEN_WINDOW,RATE_LIMIT_VERIFY_EMAIL_SEND_WINDOW,RATE_LIMIT_REGISTER_WINDOW,SENDER_EMAIL"
 
   # The Nitro server bundle legitimately contains server-only env vars at runtime.

@@ -126,6 +126,18 @@ export const useCart = () => {
     await fetchCart()
   }
 
+  // ── validateCart ──────────────────────────────────────────────────────────
+  // Returns staleness results for all items. Silent — never throws.
+  const validateCart = async (): Promise<any[]> => {
+    if (!profileStore.isLoggedIn || !store.items.length) return []
+    try {
+      const res = await api.validateCart()
+      return res?.data?.items ?? []
+    } catch {
+      return []
+    }
+  }
+
   return {
     isLoading,
     hasFetchedOnce,
@@ -139,5 +151,6 @@ export const useCart = () => {
     updateQuantity,
     removeFromCart,
     syncGuestCartToServer,
+    validateCart,
   }
 }

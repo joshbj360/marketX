@@ -11,6 +11,8 @@ import { profileRepository } from '../repositories/profile.repository'
 import { triggerUserEvent } from '~~/server/utils/pusher'
 import { auditQueue } from '~~/server/queues/audit.queue'
 import { notificationQueue } from '~~/server/queues/notification.queue'
+import { emailQueue } from '~~/server/queues/email.queue'
+import { buildNewConversationEmail } from '~~/server/utils/email/emailService'
 import { IConversation } from '../../app/types/profile.types'
 
 export const chatService = {
@@ -36,6 +38,22 @@ export const chatService = {
       participant2Id: targetId,
       currentProductId: productId,
     })
+
+    // Notify recipient of new conversation
+    notificationQueue.enqueue({
+      userId: targetId,
+      type: 'MESSAGE',
+      actorId: userId,
+      conversationId: conversation.id,
+      message: 'Started a new conversation with you.',
+    })
+    prisma.user.findUnique({ where: { id: targetId }, select: { email: true } })
+      .then((recipient) => {
+        if (!recipient?.email) return
+        const { subject, html, text } = buildNewConversationEmail('Someone')
+        emailQueue.enqueue({ to: recipient.email, subject, html, text, type: 'GENERAL' })
+      })
+      .catch(() => {})
 
     // ALIGNED: Audit Log
     if (ipAddress && userAgent) {
@@ -74,6 +92,29 @@ export const chatService = {
       sellerId,
       currentProductId: productId,
     })
+
+    // Notify the store owner of the new conversation
+    prisma.sellerProfile.findUnique({
+      where: { id: sellerId },
+      select: { profileId: true, store_name: true },
+    }).then(async (store) => {
+      if (!store?.profileId || store.profileId === buyerId) return
+      notificationQueue.enqueue({
+        userId: store.profileId,
+        type: 'MESSAGE',
+        actorId: buyerId,
+        conversationId: conversation.id,
+        message: `A customer started a conversation with ${store.store_name || 'your store'}.`,
+      })
+      const storeOwner = await prisma.user.findUnique({
+        where: { id: store.profileId },
+        select: { email: true },
+      })
+      if (storeOwner?.email) {
+        const { subject, html, text } = buildNewConversationEmail('A customer')
+        emailQueue.enqueue({ to: storeOwner.email, subject, html, text, type: 'GENERAL' })
+      }
+    }).catch(() => {})
 
     if (ipAddress && userAgent) {
       auditQueue.enqueue({

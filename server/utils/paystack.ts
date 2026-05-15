@@ -7,7 +7,7 @@
 const PAYSTACK_BASE = 'https://api.paystack.co'
 
 function getSecret(): string {
-  const key = process.env.PAYSTACK_SECRET_KEY
+  const key = useRuntimeConfig().paystackSecretKey
   if (!key) throw new Error('PAYSTACK_SECRET_KEY is not set')
   return key
 }
@@ -16,6 +16,7 @@ function paystackHeaders() {
   return {
     Authorization: `Bearer ${getSecret()}`,
     'Content-Type': 'application/json',
+    'User-Agent': 'MarketX/1.0 (server)',
   }
 }
 

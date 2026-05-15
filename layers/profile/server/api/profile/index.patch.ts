@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     if (error instanceof ZodError) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Validation Error' + error, // TODO: remove in production
+        statusMessage: 'Invalid request data',
         data: error.errors,
       })
     }
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
       const userError = error as any
       throw createError({
         statusCode: userError.statusCode || 400,
-        statusMessage: error.message + error, // TODO: remove in production
+        statusMessage: error.message,
       })
     }
 

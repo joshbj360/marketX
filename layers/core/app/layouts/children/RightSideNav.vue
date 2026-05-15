@@ -103,7 +103,7 @@
             </div>
             <NuxtLink
               to="/sellers"
-              class="flex items-center gap-1 text-xs font-medium text-gray-400 transition-colors hover:text-gray-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+              class="flex items-center gap-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-neutral-400 dark:hover:text-neutral-200"
             >
               See All <Icon name="mdi:chevron-right" size="14" />
             </NuxtLink>

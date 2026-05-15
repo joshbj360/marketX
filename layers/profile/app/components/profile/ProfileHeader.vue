@@ -52,6 +52,7 @@
               </button>
               <button
                 @click="$emit('settings')"
+                aria-label="Settings"
                 class="rounded-lg bg-gray-100 p-1.5 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
               >
                 <Icon name="mdi:cog-outline" size="18" />
@@ -87,6 +88,7 @@
                 {{ $t('profile.message') }}
               </button>
               <button
+                aria-label="More options"
                 class="rounded-lg bg-gray-100 p-1.5 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
               >
                 <Icon name="mdi:dots-horizontal" size="18" />

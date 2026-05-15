@@ -15,7 +15,8 @@ export default defineEventHandler(async (event) => {
     )
     return { success: true, data: result }
   } catch (error: unknown) {
-    console.error('[GET /notifications]', error)
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
+    logger.logError('[GET /notifications]', error, { requestId: event.context?.requestId })
     throw createError({
       statusCode: 500,
       statusMessage: 'Unable to load notifications right now',

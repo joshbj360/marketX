@@ -50,7 +50,6 @@ export default defineEventHandler(async (event) => {
     await orderRepository.setPaymentRef(order.id, reference)
 
     // 3. Initialize Paystack transaction
-    const config = useRuntimeConfig()
     const ps = await paystack.initializeTransaction({
       email: user.email,
       amount: order.totalAmount + body.shippingCost,

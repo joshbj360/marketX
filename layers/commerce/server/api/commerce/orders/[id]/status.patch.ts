@@ -1,9 +1,11 @@
 // PATCH /api/commerce/orders/[id]/status — seller updates order status
 import { z, ZodError } from 'zod'
 import { walletService } from '~~/layers/commerce/server/services/wallet.service'
-import { notificationService } from '~~/layers/profile/server/services/notification.service'
 import { UserError } from '~~/layers/profile/server/types/user.types'
 import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
+import { notificationQueue } from '~~/server/queues/notification.queue'
+import { emailQueue } from '~~/server/queues/email.queue'
+import { buildOrderStatusEmail } from '~~/server/utils/email/emailService'
 
 const schema = z.object({
   status: z.enum(['CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
@@ -59,16 +61,32 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    // Notify buyer when order is shipped
-    if (body.status === 'SHIPPED') {
-      notificationService
-        .createNotification({
-          userId: order.userId,
-          type: 'ORDER',
-          actorId: user.id,
-          message: `Your order #${id} has been shipped${body.trackingNumber ? ` · Tracking: ${body.trackingNumber}` : ''}. Funds will be released to the seller in 7 days if not confirmed.`,
+    // Notify + email buyer on all seller-driven status changes
+    const buyerMessages: Partial<Record<string, string>> = {
+      CONFIRMED: `Your order #${id} has been confirmed by the seller and is being prepared.`,
+      SHIPPED: `Your order #${id} has been shipped${body.trackingNumber ? ` · Tracking: ${body.trackingNumber}` : ''}. Funds will be released in 7 days if not confirmed.`,
+      DELIVERED: `Your order #${id} has been marked as delivered.`,
+      CANCELLED: `Your order #${id} has been cancelled by the seller.`,
+    }
+    const buyerMsg = buyerMessages[body.status]
+    if (buyerMsg) {
+      notificationQueue.enqueue({
+        userId: order.userId,
+        type: 'ORDER',
+        actorId: user.id,
+        orderId: id,
+        message: buyerMsg,
+      })
+      prisma.user.findUnique({ where: { id: order.userId }, select: { email: true } })
+        .then((buyer) => {
+          if (!buyer?.email) return
+          const { subject, html, text } = buildOrderStatusEmail(id, body.status as any, {
+            trackingNumber: body.trackingNumber,
+            shipper: body.shipper,
+          })
+          emailQueue.enqueue({ to: buyer.email, subject, html, text, type: 'GENERAL' })
         })
-        .catch((e) => logger.logError('[notify buyer shipped]', e))
+        .catch((e) => logger.logError('[status email buyer]', e))
     }
 
     // Release held funds to seller available balance on delivery

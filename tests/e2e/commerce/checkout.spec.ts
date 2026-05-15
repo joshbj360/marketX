@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { pageLogin, apiLogin, clearCart, getFirstVariantId } from '../../helpers/auth'
+import { pageLogin, apiLogin, clearCart, getFirstVariantId, getFirstProductSlug } from '../../helpers/auth'
 
-const PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
+let PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
 const T = { timeout: 15000 }
 
 test.describe('Commerce — Cart & Checkout', () => {
+  test.beforeAll(async ({ request }) => {
+    PRODUCT_SLUG = await getFirstProductSlug(request)
+  })
   // ── Guest checkout ─────────────────────────────────────────────────────────
   test.describe('Guest — inline auth step', () => {
     test('guest sees the inline auth form on /checkout', async ({ page }) => {

@@ -24,6 +24,13 @@ export class CartApiClient extends BaseApiClient {
       silent: true,
     })
   }
+
+  async validateCart() {
+    return this.request<{ success: boolean; data: { items: any[]; hasIssues: boolean } }>(
+      '/api/commerce/cart/validate',
+      { method: 'GET', silent: true },
+    )
+  }
 }
 
 let instance: CartApiClient | null = null

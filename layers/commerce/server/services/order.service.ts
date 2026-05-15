@@ -47,12 +47,18 @@ export const orderService = {
             product: {
               include: {
                 offers: { where: { isActive: true }, orderBy: { minQuantity: 'desc' } },
+                seller: { select: { id: true } },
               },
             },
           },
         }),
       ),
     )
+
+    const sellerIds = new Set(variantRows.map((v) => v?.product.seller?.id).filter(Boolean))
+    if (sellerIds.size > 1) {
+      throw new UserError('MULTI_SELLER_ORDER', 'All items must be from the same store', 400)
+    }
 
     let totalAmount = 0
     let totalAffiliateCut = 0

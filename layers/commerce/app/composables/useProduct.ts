@@ -19,6 +19,10 @@ export const useProduct = () => {
     offset?: number
     isThrift?: boolean
     categorySlug?: string
+    minDiscount?: number
+    minPrice?: number
+    maxPrice?: number
+    sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'popular'
   }) => {
     store.setLoading(true)
     store.setError(null)

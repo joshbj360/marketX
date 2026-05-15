@@ -47,6 +47,8 @@
     <!-- ─── Owner actions menu ──────────────────────────────── -->
     <div v-if="isOwner" class="relative ml-1 shrink-0">
       <button
+        aria-label="Post options"
+        :aria-expanded="menuOpen"
         @click.stop="menuOpen = !menuOpen"
         class="rounded-full p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-neutral-500 dark:hover:text-neutral-200"
       >
@@ -75,6 +77,7 @@
     </div>
     <button
       v-else
+      aria-label="More options"
       class="ml-1 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:text-gray-700 dark:text-neutral-500 dark:hover:text-neutral-200"
     >
       <Icon name="mdi:dots-horizontal" size="20" />

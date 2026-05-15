@@ -5,12 +5,12 @@
   >
     <div class="flex h-16 items-center justify-around px-2">
       <!-- Home -->
-      <NuxtLink to="/" class="nav-item" :class="{ active: isHome }">
+      <NuxtLink to="/" class="nav-item" :class="{ active: isHome }" aria-label="Home">
         <Icon :name="isHome ? 'mdi:home' : 'mdi:home-outline'" size="26" />
       </NuxtLink>
 
       <!-- Near Me -->
-      <NuxtLink to="/map" class="nav-item" active-class="active">
+      <NuxtLink to="/map" class="nav-item" active-class="active" aria-label="Near Me">
         <Icon name="mdi:map-marker-radius-outline" size="26" />
       </NuxtLink>
 
@@ -44,7 +44,7 @@
       </ClientOnly>
 
       <!-- Squares -->
-      <NuxtLink to="/squares" class="nav-item" active-class="active">
+      <NuxtLink to="/squares" class="nav-item" active-class="active" aria-label="Squares">
         <Icon
           :name="isSquares ? 'mdi:storefront' : 'mdi:storefront-outline'"
           size="26"
@@ -54,7 +54,11 @@
       <!-- Profile -->
       <ClientOnly>
         <div v-if="profileStore.isLoggedIn" ref="menuRef" class="relative">
-          <button class="nav-item" @click="menuOpen = !menuOpen">
+          <button
+            class="nav-item"
+            :aria-label="`${profileStore.me?.username ?? 'User'} profile menu`"
+            @click="menuOpen = !menuOpen"
+          >
             <Avatar
               :username="profileStore.me?.username ?? 'User'"
               :avatar="profileStore.me?.avatar ?? ''"

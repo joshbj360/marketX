@@ -95,7 +95,8 @@
         <!-- ─── RIGHT SIDEBAR (Desktop) ──────────────────────────────────────── -->
         <aside
           v-if="showRightSidebar"
-          class="scrollbar-hide hidden h-[100dvh] w-[420px] shrink-0 overflow-y-auto border-l border-gray-200 bg-white p-4 lg:block dark:border-neutral-800 dark:bg-neutral-900"
+          class="scrollbar-hide hidden h-[100dvh] shrink-0 overflow-y-auto border-l border-gray-200 bg-white p-4 lg:block dark:border-neutral-800 dark:bg-neutral-900"
+          :class="narrowSidebar ? 'w-64' : 'w-[420px]'"
         >
           <slot name="right-sidebar">
             <RightSideNav @open-ai="showAI = true" />
@@ -161,6 +162,7 @@
             </NuxtLink>
             <button
               class="shrink-0 p-1 text-white/60 hover:text-white"
+              aria-label="Dismiss"
               @click="dismissSellerBanner = true"
             >
               <Icon name="mdi:close" size="16" />
@@ -279,6 +281,7 @@ const props = defineProps<{
   narrowFeed?: boolean
   hideRightSidebar?: boolean
   customPadding?: boolean
+  narrowSidebar?: boolean
 }>()
 
 // ─── Layout Detection ───────────────────────────────────────────────────────

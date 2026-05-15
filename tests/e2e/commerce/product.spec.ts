@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { getFirstProductSlug } from '../../helpers/auth'
 
-const PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
+let PRODUCT_SLUG = 'adire-tie-dye-maxi-dress'
 const T = { timeout: 15000 }
 
 test.describe('Commerce — Product Detail', () => {
+  test.beforeAll(async ({ request }) => {
+    PRODUCT_SLUG = await getFirstProductSlug(request)
+  })
   test('renders title as H1 heading', async ({ page }) => {
     await page.goto(`/product/${PRODUCT_SLUG}`)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible(T)

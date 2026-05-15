@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "test": "playwright test",
     "test:api": "playwright test --project=api",
-    "test:e2e": "playwright test --project=e2e",
+    "test:e2e": "playwright test --project=e2e --project=e2e-mobile",
+    "test:audits": "playwright test --project=audits",
+    "test:snapshots": "playwright test --project=e2e --update-snapshots",
     "test:auth": "playwright test layers/core/server/api/auth/__tests__",
     "test:report": "playwright show-report tests/report",
     "test:unit": "vitest run",
@@ -60,6 +62,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@iconify-json/eos-icons": "^1.2.4",
     "@iconify-json/mdi": "^1.2.3",
     "@iconify-json/simple-icons": "^1.2.78",
@@ -75,6 +78,8 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-vue": "^9.24.0",
     "jsdom": "^28.1.0",
+    "lighthouse": "^13.3.0",
+    "playwright-lighthouse": "^4.0.0",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.12",
     "prisma": "^7.4.0",

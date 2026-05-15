@@ -1,6 +1,6 @@
 // POST /api/commerce/products/[id]/comments
 
-import { notificationService } from '~~/layers/profile/server/services/notification.service'
+import { notificationQueue } from '~~/server/queues/notification.queue'
 import { auditService } from '~~/server/layers/shared/audit/audit.service'
 import { requireAuth } from '~~/server/layers/shared/middleware/requireAuth'
 
@@ -42,18 +42,16 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  // Notify product owner (non-blocking, skip self-notifications)
+  // Notify product owner via queue (enables SSE push, skip self-notifications)
   const ownerId = product.seller?.profile?.userId
   if (ownerId && ownerId !== user.id) {
-    notificationService
-      .createNotification({
-        userId: ownerId,
-        type: 'PRODUCT_COMMENT',
-        actorId: user.id,
-        message: `${user.username} commented on your product "${product.title}"`,
-        commentId: comment.id,
-      })
-      .catch(() => {})
+    notificationQueue.enqueue({
+      userId: ownerId,
+      type: 'PRODUCT_COMMENT',
+      actorId: user.id,
+      message: `${user.username} commented on your product "${product.title}"`,
+      commentId: comment.id,
+    })
   }
 
   // Audit log (non-blocking)

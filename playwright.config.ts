@@ -18,7 +18,12 @@ export default defineConfig({
       Accept: 'application/json',
     },
     trace: 'on-first-retry',
+    // Visual regression snapshots stored under tests/snapshots/
+    snapshotDir: 'tests/snapshots',
   },
+
+  // Allow `npx playwright test --update-snapshots` to regenerate baselines
+  updateSnapshots: 'missing',
 
   projects: [
     {
@@ -35,6 +40,18 @@ export default defineConfig({
       name: 'e2e-mobile',
       testMatch: 'tests/e2e/**/*.spec.ts',
       use: { ...devices['iPhone 14'] },
+    },
+    {
+      // Lighthouse audits require Chrome with remote debugging enabled.
+      // Run separately: npx playwright test --project=audits
+      name: 'audits',
+      testMatch: 'tests/e2e/audits/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--remote-debugging-port=9222'],
+        },
+      },
     },
   ],
 

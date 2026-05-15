@@ -32,8 +32,9 @@
               </span>
             </div>
             <button
-              @click="$emit('close')"
+              aria-label="Close cart"
               class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
+              @click="$emit('close')"
             >
               <Icon
                 name="mdi:close"
@@ -68,18 +69,15 @@
                 Browse the shop and add items to get started
               </p>
               <button
-                @click="$emit('close')"
                 class="text-[13px] font-semibold text-brand transition-colors hover:text-[#d81b36]"
+                @click="$emit('close')"
               >
                 Continue shopping →
               </button>
             </div>
 
             <!-- Loading skeleton -->
-            <div
-              v-else-if="showInitialLoader"
-              class="space-y-4 px-5 pt-4"
-            >
+            <div v-else-if="showInitialLoader" class="space-y-4 px-5 pt-4">
               <div v-for="i in 3" :key="i" class="flex animate-pulse gap-3">
                 <div
                   class="h-16 w-16 shrink-0 rounded-xl bg-gray-100 dark:bg-neutral-800"
@@ -101,121 +99,141 @@
                 v-for="item in items"
                 :key="item.variantId"
                 class="group flex flex-col gap-0 rounded-xl transition-colors"
-                :class="itemWarning(item.variantId) ? 'bg-red-50/60 dark:bg-red-950/20' : 'hover:bg-gray-50 dark:hover:bg-neutral-800/50'"
+                :class="
+                  itemWarning(item.variantId)
+                    ? 'bg-red-50/60 dark:bg-red-950/20'
+                    : 'hover:bg-gray-50 dark:hover:bg-neutral-800/50'
+                "
               >
                 <!-- Staleness warning banner -->
                 <div
                   v-if="itemWarning(item.variantId)"
                   class="flex items-center gap-1.5 rounded-t-xl px-2.5 pt-2 text-[11px] font-semibold"
                   :class="{
-                    'text-red-600 dark:text-red-400': itemWarning(item.variantId)?.status === 'unavailable' || itemWarning(item.variantId)?.status === 'insufficient_stock',
-                    'text-amber-600 dark:text-amber-400': itemWarning(item.variantId)?.status === 'price_increased',
-                    'text-emerald-600 dark:text-emerald-400': itemWarning(item.variantId)?.status === 'price_decreased',
+                    'text-red-600 dark:text-red-400':
+                      itemWarning(item.variantId)?.status === 'unavailable' ||
+                      itemWarning(item.variantId)?.status ===
+                        'insufficient_stock',
+                    'text-amber-600 dark:text-amber-400':
+                      itemWarning(item.variantId)?.status === 'price_increased',
+                    'text-emerald-600 dark:text-emerald-400':
+                      itemWarning(item.variantId)?.status === 'price_decreased',
                   }"
                 >
                   <Icon
-                    :name="itemWarning(item.variantId)?.status === 'price_decreased' ? 'mdi:tag-arrow-down-outline' : 'mdi:alert-circle-outline'"
+                    :name="
+                      itemWarning(item.variantId)?.status === 'price_decreased'
+                        ? 'mdi:tag-arrow-down-outline'
+                        : 'mdi:alert-circle-outline'
+                    "
                     size="13"
                   />
                   <span>{{ warningText(item.variantId) }}</span>
                 </div>
                 <div class="flex gap-3 p-2">
-                <!-- Thumbnail -->
-                <div
-                  class="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-neutral-800"
-                >
-                  <img
-                    v-if="item.variant?.product?.media?.length"
-                    :src="imgThumb(item.variant.product.media[0].url)"
-                    :alt="item.variant?.product?.title"
-                    class="h-full w-full object-cover"
-                  />
+                  <!-- Thumbnail -->
                   <div
-                    v-else
-                    class="flex h-full w-full items-center justify-center"
+                    class="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-neutral-800"
                   >
-                    <Icon
-                      name="mdi:image-outline"
-                      size="22"
-                      class="text-gray-300 dark:text-neutral-600"
+                    <img
+                      v-if="item.variant?.product?.media?.length"
+                      :src="imgThumb(item.variant.product.media[0].url)"
+                      :alt="item.variant?.product?.title"
+                      class="h-full w-full object-cover"
                     />
+                    <div
+                      v-else
+                      class="flex h-full w-full items-center justify-center"
+                    >
+                      <Icon
+                        name="mdi:image-outline"
+                        size="22"
+                        class="text-gray-300 dark:text-neutral-600"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <!-- Info -->
-                <div class="min-w-0 flex-1">
-                  <p
-                    class="truncate text-[13px] font-semibold leading-snug text-gray-900 dark:text-neutral-100"
-                  >
-                    {{ item.variant?.product?.title ?? 'Product' }}
-                  </p>
-                  <p
-                    v-if="item.variant?.size"
-                    class="mt-0.5 text-[11px] text-gray-400 dark:text-neutral-500"
-                  >
-                    Size: {{ item.variant.size }}
-                  </p>
-                  <!-- Price row: effective price + crossed-out original -->
-                  <div class="mt-0.5 flex items-baseline gap-1.5">
+                  <!-- Info -->
+                  <div class="min-w-0 flex-1">
                     <p
-                      class="text-[13px] font-bold text-gray-900 dark:text-neutral-100"
+                      class="truncate text-[13px] font-semibold leading-snug text-gray-900 dark:text-neutral-100"
+                    >
+                      {{ item.variant?.product?.title ?? 'Product' }}
+                    </p>
+                    <p
+                      v-if="item.variant?.size"
+                      class="mt-0.5 text-[11px] text-gray-400 dark:text-neutral-500"
+                    >
+                      Size: {{ item.variant.size }}
+                    </p>
+                    <!-- Price row: effective price + crossed-out original -->
+                    <div class="mt-0.5 flex items-baseline gap-1.5">
+                      <p
+                        class="text-[13px] font-bold text-gray-900 dark:text-neutral-100"
+                      >
+                        {{
+                          formatPrice(itemEffectivePrice(item) * item.quantity)
+                        }}
+                      </p>
+                      <p
+                        v-if="
+                          itemOriginalPrice(item) > itemEffectivePrice(item)
+                        "
+                        class="text-[11px] text-gray-400 line-through dark:text-neutral-500"
+                      >
+                        {{
+                          formatPrice(itemOriginalPrice(item) * item.quantity)
+                        }}
+                      </p>
+                    </div>
+                    <!-- Offer badge -->
+                    <p
+                      v-if="activeOffer(item)"
+                      class="mt-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
                     >
                       {{
-                        formatPrice(itemEffectivePrice(item) * item.quantity)
+                        activeOffer(item)?.label ||
+                        `Buy ${activeOffer(item)?.minQuantity}+, save ${activeOffer(item)?.discount}%`
                       }}
                     </p>
-                    <p
-                      v-if="itemOriginalPrice(item) > itemEffectivePrice(item)"
-                      class="text-[11px] text-gray-400 line-through dark:text-neutral-500"
-                    >
-                      {{ formatPrice(itemOriginalPrice(item) * item.quantity) }}
-                    </p>
-                  </div>
-                  <!-- Offer badge -->
-                  <p
-                    v-if="activeOffer(item)"
-                    class="mt-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
-                  >
-                    {{
-                      activeOffer(item)?.label ||
-                      `Buy ${activeOffer(item)?.minQuantity}+, save ${activeOffer(item)?.discount}%`
-                    }}
-                  </p>
 
-                  <!-- Qty controls -->
-                  <div class="mt-1.5 flex items-center gap-2">
-                    <div
-                      class="flex items-center overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-700"
-                    >
+                    <!-- Qty controls -->
+                    <div class="mt-1.5 flex items-center gap-2">
+                      <div
+                        class="flex items-center overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-700"
+                      >
+                        <button
+                          aria-label="Decrease quantity"
+                          class="flex h-9 w-9 items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
+                          @click="handleDecrement(item)"
+                        >
+                          <Icon name="mdi:minus" size="14" />
+                        </button>
+                        <span
+                          class="w-8 text-center text-[13px] font-semibold text-gray-900 dark:text-neutral-100"
+                          >{{ item.quantity }}</span
+                        >
+                        <button
+                          aria-label="Increase quantity"
+                          class="flex h-9 w-9 items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
+                          @click="
+                            updateQuantity(item.variantId, item.quantity + 1)
+                          "
+                        >
+                          <Icon name="mdi:plus" size="14" />
+                        </button>
+                      </div>
+
+                      <!-- Remove — always visible on touch, fade on desktop -->
                       <button
-                        @click="handleDecrement(item)"
-                        class="flex h-9 w-9 items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
+                        aria-label="Remove from cart"
+                        class="ml-auto rounded-full p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-red-950/30"
+                        @click="removeFromCart(item.variantId)"
                       >
-                        <Icon name="mdi:minus" size="14" />
-                      </button>
-                      <span
-                        class="w-8 text-center text-[13px] font-semibold text-gray-900 dark:text-neutral-100"
-                        >{{ item.quantity }}</span
-                      >
-                      <button
-                        @click="
-                          updateQuantity(item.variantId, item.quantity + 1)
-                        "
-                        class="flex h-9 w-9 items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-neutral-800"
-                      >
-                        <Icon name="mdi:plus" size="14" />
+                        <Icon name="mdi:trash-can-outline" size="16" />
                       </button>
                     </div>
-
-                    <!-- Remove — always visible on touch, fade on desktop -->
-                    <button
-                      @click="removeFromCart(item.variantId)"
-                      class="ml-auto rounded-full p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 dark:text-neutral-500 dark:hover:bg-red-950/30"
-                    >
-                      <Icon name="mdi:trash-can-outline" size="16" />
-                    </button>
                   </div>
-                </div>
                 </div>
               </li>
             </ul>
@@ -237,8 +255,8 @@
             <!-- Checkout CTA -->
             <NuxtLink
               to="/checkout"
-              @click="$emit('close')"
               class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 text-[14px] font-bold text-white transition-all hover:bg-[#d81b36] active:scale-[0.98]"
+              @click="$emit('close')"
             >
               <Icon name="mdi:lock-outline" size="16" />
               Checkout
@@ -251,6 +269,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import { effectiveUnitPrice } from '~~/layers/commerce/app/stores/cart.store'
 import { imgThumb } from '~~/layers/core/app/utils/cloudinary'
@@ -268,6 +287,7 @@ const {
   fetchCart,
   updateQuantity,
   removeFromCart,
+  validateCart: fetchValidation,
 } = useCart()
 
 const showInitialLoader = computed(
@@ -288,7 +308,12 @@ const showEmptyState = computed(
 // Cart staleness validation
 type ValidationResult = {
   variantId: number
-  status: 'ok' | 'price_increased' | 'price_decreased' | 'insufficient_stock' | 'unavailable'
+  status:
+    | 'ok'
+    | 'price_increased'
+    | 'price_decreased'
+    | 'insufficient_stock'
+    | 'unavailable'
   priceAtAdd?: number
   currentPrice?: number
   diff?: number
@@ -316,15 +341,7 @@ const warningText = (variantId: number): string => {
 }
 
 async function validateCart() {
-  if (!profileStore.isLoggedIn || !items.value.length) return
-  try {
-    const res = await $fetch<{ success: boolean; data: { items: ValidationResult[]; hasIssues: boolean } }>(
-      '/api/commerce/cart/validate',
-    )
-    validationResults.value = res.data.items
-  } catch {
-    // silent — validation is best-effort
-  }
+  validationResults.value = (await fetchValidation()) as ValidationResult[]
 }
 
 watch(

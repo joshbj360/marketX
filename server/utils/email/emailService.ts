@@ -242,6 +242,142 @@ export async function sendOtpEmail(
   })
 }
 
+// ─── Notification email builders ─────────────────────────────────────────────
+// These return { subject, html, text } ready to pass to emailQueue.enqueue().
+
+export function buildOrderStatusEmail(
+  orderId: number,
+  status: 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+  options: { trackingNumber?: string; shipper?: string; appName?: string } = {},
+): { subject: string; html: string; text: string } {
+  const { trackingNumber, shipper, appName = 'MarketX' } = options
+  const info: Record<
+    string,
+    { emoji: string; headline: string; detail: string }
+  > = {
+    CONFIRMED: {
+      emoji: '✅',
+      headline: 'Order confirmed',
+      detail:
+        'The seller has confirmed your order and is preparing it for shipment.',
+    },
+    SHIPPED: {
+      emoji: '📦',
+      headline: 'Order shipped',
+      detail: `Your order has been shipped${trackingNumber ? ` · Tracking: ${trackingNumber}${shipper ? ` via ${shipper}` : ''}` : ''}. Funds release to the seller in 7 days unless you confirm delivery sooner.`,
+    },
+    DELIVERED: {
+      emoji: '🎉',
+      headline: 'Order delivered',
+      detail: 'Your order has been marked as delivered. We hope you love it!',
+    },
+    CANCELLED: {
+      emoji: '❌',
+      headline: 'Order cancelled',
+      detail:
+        'The seller has cancelled your order. If you were charged, please contact support.',
+    },
+  }
+  const { emoji, headline, detail } = info[status] || info.CONFIRMED
+  const subject = `${emoji} Order #${orderId} — ${headline}`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0}
+.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden}
+.hd{background:#e31837;padding:28px 32px;text-align:center}
+.hd h1{color:#fff;margin:0;font-size:20px}
+.bd{padding:32px}
+.badge{display:inline-block;font-size:13px;background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:20px;margin-bottom:16px}
+p{font-size:15px;color:#333;line-height:1.6;margin:0 0 12px}
+.ft{text-align:center;padding:16px;font-size:12px;color:#aaa}
+</style></head><body>
+<div class="wrap"><div class="hd"><h1>${appName}</h1></div>
+<div class="bd"><span class="badge">Order #${orderId}</span>
+<p><strong>${emoji} ${headline}.</strong> ${detail}</p>
+<p style="color:#888;font-size:13px">Questions? Reply to this email or visit the app.</p>
+</div><div class="ft">&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</div></div>
+</body></html>`
+  return {
+    subject,
+    html,
+    text: `${emoji} ${headline} — Order #${orderId}\n\n${detail}`,
+  }
+}
+
+export function buildOrderCancelledSellerEmail(
+  orderId: number,
+  storeName: string,
+  appName = 'MarketX',
+): { subject: string; html: string; text: string } {
+  const subject = `❌ Order #${orderId} has been cancelled`
+  const detail = `Order #${orderId} placed at ${storeName} has been cancelled by the buyer. No action needed — stock has been automatically restored.`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0}
+.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden}
+.hd{background:#e31837;padding:28px 32px;text-align:center}
+.hd h1{color:#fff;margin:0;font-size:20px}
+.bd{padding:32px}
+.badge{display:inline-block;font-size:13px;background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:20px;margin-bottom:16px}
+p{font-size:15px;color:#333;line-height:1.6;margin:0 0 12px}
+.ft{text-align:center;padding:16px;font-size:12px;color:#aaa}
+</style></head><body>
+<div class="wrap"><div class="hd"><h1>${appName}</h1></div>
+<div class="bd"><span class="badge">Order #${orderId} cancelled</span>
+<p>${detail}</p>
+</div><div class="ft">&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</div></div>
+</body></html>`
+  return { subject, html, text: `Order #${orderId} Cancelled\n\n${detail}` }
+}
+
+export function buildReviewReceivedEmail(
+  targetName: string,
+  rating: number,
+  reviewTitle?: string,
+  appName = 'MarketX',
+): { subject: string; html: string; text: string } {
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating)
+  const subject = `New ${rating}-star review on ${targetName}`
+  const detail = `You received a ${rating}-star review${reviewTitle ? ` titled "${reviewTitle}"` : ''} on ${targetName}.`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0}
+.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden}
+.hd{background:#e31837;padding:28px 32px;text-align:center}
+.hd h1{color:#fff;margin:0;font-size:20px}
+.bd{padding:32px}
+.stars{font-size:28px;color:#f59e0b;letter-spacing:2px;margin:0 0 12px;display:block}
+p{font-size:15px;color:#333;line-height:1.6;margin:0 0 12px}
+.ft{text-align:center;padding:16px;font-size:12px;color:#aaa}
+</style></head><body>
+<div class="wrap"><div class="hd"><h1>${appName}</h1></div>
+<div class="bd"><span class="stars">${stars}</span>
+<p>${detail}</p>
+</div><div class="ft">&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</div></div>
+</body></html>`
+  return { subject, html, text: `New Review: ${stars}\n\n${detail}` }
+}
+
+export function buildNewConversationEmail(
+  senderName: string,
+  productTitle?: string,
+  appName = 'MarketX',
+): { subject: string; html: string; text: string } {
+  const subject = `New message from ${senderName}${productTitle ? ` about "${productTitle}"` : ''}`
+  const detail = `${senderName} started a conversation with you${productTitle ? ` about "${productTitle}"` : ''}. Open the app to reply.`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0}
+.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden}
+.hd{background:#e31837;padding:28px 32px;text-align:center}
+.hd h1{color:#fff;margin:0;font-size:20px}
+.bd{padding:32px}
+p{font-size:15px;color:#333;line-height:1.6;margin:0}
+.ft{text-align:center;padding:16px;font-size:12px;color:#aaa}
+</style></head><body>
+<div class="wrap"><div class="hd"><h1>${appName}</h1></div>
+<div class="bd"><p>💬 ${detail}</p></div>
+<div class="ft">&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</div></div>
+</body></html>`
+  return { subject, html, text: `New message from ${senderName}\n\n${detail}` }
+}
+
 /**
  * Send welcome email
  */

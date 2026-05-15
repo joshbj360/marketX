@@ -7,5 +7,7 @@
 			"path": "../../../../../Public/dev/source/fitsy_mobile/fitsy_mobile"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "marketX"
+	}
 }

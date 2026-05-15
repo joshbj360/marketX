@@ -1,6 +1,9 @@
 import { UserError } from '~~/layers/profile/server/types/user.types'
 import { auditQueue } from '~~/server/queues/audit.queue'
 import { notificationService } from '~~/layers/profile/server/services/notification.service'
+import { notificationQueue } from '~~/server/queues/notification.queue'
+import { emailQueue } from '~~/server/queues/email.queue'
+import { buildReviewReceivedEmail } from '~~/server/utils/email/emailService'
 import { auditService } from '~~/server/layers/shared/audit/audit.service'
 import { productRepository } from '../repositories/product.repository'
 import { prisma } from '~~/server/utils/db'
@@ -19,6 +22,10 @@ export interface ProductFilters {
   storeSlug?: string
   isThrift?: boolean
   categorySlug?: string
+  minDiscount?: number
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'popular'
 }
 
 export interface ReviewInput {
@@ -92,18 +99,17 @@ export const productService = {
         categorySlug: filters?.categorySlug,
       })
 
+    const repoFilters = {
+      status, search, sellerId, isThrift, categorySlug,
+      minDiscount: filters?.minDiscount,
+      minPrice: filters?.minPrice,
+      maxPrice: filters?.maxPrice,
+      sortBy: filters?.sortBy,
+    }
+
     const [products, total] = await Promise.all([
-      productRepository.getProducts(
-        { status, search, sellerId, isThrift, categorySlug },
-        { limit, offset },
-      ),
-      productRepository.countProducts({
-        status,
-        search,
-        sellerId,
-        isThrift,
-        categorySlug,
-      }),
+      productRepository.getProducts(repoFilters, { limit, offset }),
+      productRepository.countProducts({ status, search, sellerId, isThrift, categorySlug }),
     ])
 
     return { products, total, limit, offset }
@@ -303,6 +309,34 @@ export const productService = {
       agg._avg.rating ?? 0,
       agg._count,
     )
+
+    // Notify + email the seller (non-blocking, skip self-reviews)
+    prisma.products.findUnique({
+      where: { id: productId },
+      select: { title: true, seller: { select: { profileId: true } } },
+    }).then(async (product) => {
+      const sellerProfileId = product?.seller?.profileId
+      if (!sellerProfileId || sellerProfileId === userId) return
+      notificationQueue.enqueue({
+        userId: sellerProfileId,
+        type: 'PRODUCT_REVIEW',
+        actorId: userId,
+        productId,
+        message: `You received a ${data.rating}-star review on "${product?.title}".`,
+      })
+      const sellerUser = await prisma.user.findUnique({
+        where: { id: sellerProfileId },
+        select: { email: true },
+      })
+      if (sellerUser?.email) {
+        const { subject, html, text } = buildReviewReceivedEmail(
+          product!.title,
+          data.rating,
+          data.title,
+        )
+        emailQueue.enqueue({ to: sellerUser.email, subject, html, text, type: 'GENERAL' })
+      }
+    }).catch(() => {})
 
     return review
   },

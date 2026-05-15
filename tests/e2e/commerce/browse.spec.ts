@@ -68,14 +68,8 @@ test.describe('Commerce — Browse & Discovery', () => {
       await page.goto('/discover')
       // networkidle ensures Vue has hydrated tab-button click handlers
       await page.waitForLoadState('networkidle')
-      // Watch for the products API response BEFORE clicking so we don't miss it
-      const initialLoad = page.waitForResponse(
-        (r) => r.url().includes('/api/commerce/products') && r.status() === 200,
-        T,
-      )
       await page.getByRole('button', { name: 'Products', exact: true }).click()
-      // Wait for initial load to finish so productsLoading=false before we search
-      await initialLoad
+      await expect(page.locator('.grid, [class*="py-24"]').first()).toBeVisible(T)
 
       const input = stickyInput(page)
       await expect(input).toBeVisible(T)
@@ -87,18 +81,13 @@ test.describe('Commerce — Browse & Discovery', () => {
     test('"Clear search" button removes no-results state', async ({ page }) => {
       await page.goto('/discover')
       await page.waitForLoadState('networkidle')
-      const initialLoad = page.waitForResponse(
-        (r) => r.url().includes('/api/commerce/products') && r.status() === 200,
-        T,
-      )
       await page.getByRole('button', { name: 'Products', exact: true }).click()
-      await initialLoad
+      await expect(page.locator('.grid, [class*="py-24"]').first()).toBeVisible(T)
 
       const input = stickyInput(page)
       await input.fill('zzz_nomatch_xyz_12345')
       await expect(page.getByText(/No products found/i)).toBeVisible(T)
 
-      // Sticky header button is now aria-label="Clear input"; empty-state button is "Clear search"
       await page.getByRole('button', { name: 'Clear search' }).click()
       await expect(page.getByText(/No products found/i)).not.toBeVisible()
     })
@@ -156,5 +145,87 @@ test.describe('Commerce — Browse & Discovery', () => {
   test('/thrift permanently redirects to /pre-loved', async ({ page }) => {
     await page.goto('/thrift')
     await expect(page).toHaveURL(/\/pre-loved/)
+  })
+})
+
+// ── /discover filter sidebar (desktop only) ───────────────────────────────────
+test.describe('/discover — filter sidebar', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  // Locate the right sidebar by the h3 "Filters" heading it contains
+  const filterSidebar = (page: any) =>
+    page.locator('aside').filter({ has: page.locator('h3', { hasText: 'Filters' }) })
+
+  test('filter panel is visible on desktop', async ({ page }) => {
+    await page.goto('/discover')
+    await expect(filterSidebar(page)).toBeVisible(T)
+  })
+
+  test('Trending tab (default) shows Time range section', async ({ page }) => {
+    await page.goto('/discover')
+    await expect(filterSidebar(page).getByText(/time range/i)).toBeVisible(T)
+  })
+
+  test('Products tab shows Sort by and Price range sections', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Products', exact: true }).click()
+    await expect(filterSidebar(page).getByText(/sort by/i)).toBeVisible(T)
+    await expect(filterSidebar(page).getByText(/price range/i)).toBeVisible(T)
+  })
+
+  test('clicking a non-default sort chip activates it and shows filter count badge', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Products', exact: true }).click()
+    const popularChip = filterSidebar(page).getByRole('button', { name: 'Popular' })
+    await popularChip.click()
+    await expect(popularChip).toHaveClass(/filter-chip--active/, T)
+    await expect(filterSidebar(page).locator('span.bg-brand.rounded-full')).toBeVisible(T)
+  })
+
+  test('"Clear all" button resets active filters', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Products', exact: true }).click()
+    await filterSidebar(page).getByRole('button', { name: 'Popular' }).click()
+    const clearBtn = filterSidebar(page).getByRole('button', { name: 'Clear all' })
+    await expect(clearBtn).toBeVisible(T)
+    await clearBtn.click()
+    await expect(clearBtn).not.toBeVisible(T)
+  })
+
+  test('Deals tab shows Minimum discount section', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Deals', exact: true }).click()
+    await expect(filterSidebar(page).getByText(/minimum discount/i)).toBeVisible(T)
+  })
+
+  test('Pre-loved tab shows eco badge note', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Pre-loved', exact: true }).click()
+    await expect(filterSidebar(page).getByText(/pre-loved items/i)).toBeVisible(T)
+  })
+
+  test('Sellers tab shows "Has active deals" toggle', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Sellers', exact: true }).click()
+    await expect(filterSidebar(page).getByText('Has active deals')).toBeVisible(T)
+  })
+
+  test('Tags tab shows "Sort tags by" section', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Tags', exact: true }).click()
+    await expect(filterSidebar(page).getByText(/sort tags by/i)).toBeVisible(T)
+  })
+
+  test('People tab shows no-filters placeholder', async ({ page }) => {
+    await page.goto('/discover?tab=people')
+    await expect(filterSidebar(page).getByText(/use the search bar/i)).toBeVisible(T)
+  })
+
+  test('filter sidebar "Browsing" hint updates when tab changes', async ({ page }) => {
+    await page.goto('/discover')
+    await page.getByRole('button', { name: 'Products', exact: true }).click()
+    await expect(filterSidebar(page).getByText('Products')).toBeVisible(T)
+    await page.getByRole('button', { name: 'Deals', exact: true }).click()
+    await expect(filterSidebar(page).getByText('Deals')).toBeVisible(T)
   })
 })
