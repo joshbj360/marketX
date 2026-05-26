@@ -23,7 +23,7 @@
     >
       <div
         v-if="post"
-        class="pointer-events-none fixed inset-x-0 bottom-0 z-50 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
+        class="pointer-events-none fixed inset-x-0 bottom-0 z-50 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:px-4 sm:py-8"
       >
         <!-- Mobile: back arrow (left) + close (right) -->
         <button
@@ -36,7 +36,7 @@
 
         <div
           @click.stop
-          class="pointer-events-auto flex h-[92dvh] w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[min(820px,calc(100dvh-2rem))] sm:max-w-5xl sm:flex-row sm:rounded-xl dark:bg-neutral-900"
+          class="pointer-events-auto flex h-[92dvh] w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[min(820px,calc(100dvh-8rem))] sm:max-w-5xl sm:flex-row sm:rounded-xl dark:bg-neutral-900"
         >
           <!-- Content-type accent stripe (top on mobile, left on desktop) -->
           <div
@@ -145,7 +145,7 @@
           <!-- Mobile: single scrollable column — image sticky, details card overlays -->
           <!-- Desktop: fixed-height right column that scrolls independently -->
           <div
-            class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden sm:h-full sm:overflow-hidden"
+            class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain sm:h-full sm:overflow-hidden"
           >
             <!-- Mobile: sticky media (pinned while details card scrolls over it) -->
             <div
@@ -248,7 +248,7 @@
             <div
               :class="
                 hasMedia
-                  ? '-mt-8 rounded-t-3xl bg-white shadow-[0_-16px_32px_rgba(0,0,0,0.15)] dark:bg-neutral-900 max-sm:min-h-[92dvh]'
+                  ? 'bg-white max-sm:-mt-8 max-sm:min-h-[92dvh] max-sm:rounded-t-3xl max-sm:shadow-[0_-16px_32px_rgba(0,0,0,0.15)] dark:bg-neutral-900'
                   : 'bg-white dark:bg-neutral-900'
               "
               class="relative z-10 flex flex-col sm:h-full sm:min-h-0 sm:flex-1 sm:overflow-hidden"

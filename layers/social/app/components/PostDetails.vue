@@ -1,6 +1,6 @@
 <!-- layers/social/app/components/PostDetails.vue -->
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col sm:overflow-hidden">
     <!-- Share Modal Trigger -->
     <ShareModal
       :is-open="showShareModal"
@@ -77,7 +77,7 @@
     </div>
 
     <!-- Scrollable Content: Caption + Comments -->
-    <div ref="commentsContainer" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div ref="commentsContainer" class="min-h-0 flex-1 sm:overflow-y-auto sm:overscroll-contain">
       <div class="space-y-4 p-4">
         <!-- Caption / Content -->
         <div v-if="cleanCaption || post.content" class="flex items-start gap-3">

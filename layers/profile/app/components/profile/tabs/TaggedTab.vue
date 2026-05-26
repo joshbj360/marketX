@@ -92,10 +92,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from '#imports'
 import { usePostApi } from '~~/layers/social/app/services/post.api'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
 import type { IPost } from '~~/layers/social/app/types/post.types'
 
+const router = useRouter()
 const postApi = usePostApi()
 
 const props = defineProps<{
@@ -141,7 +143,7 @@ const loadMore = async () => {
 }
 
 const openPost = (post: IPost) => {
-  selectedPost.value = post
+  router.push(`/post/${post.id}`)
 }
 
 const formatNumber = (num: number) => {

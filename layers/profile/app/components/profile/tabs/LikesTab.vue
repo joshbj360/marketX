@@ -262,6 +262,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#imports'
 import { usePostStore } from '~~/layers/social/app/store/post.store'
 import { usePost } from '~~/layers/social/app/composables/usePost'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
@@ -272,6 +273,7 @@ import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 
 const props = defineProps<{ username: string }>()
 
+const router = useRouter()
 const postStore = usePostStore()
 const {
   fetchUserLikedPosts,
@@ -322,7 +324,7 @@ const firstMedia = (post: any) => {
 }
 
 const openPost = (post: any) => {
-  selectedPost.value = normalizePost(post)
+  router.push(`/post/${post.id}`)
 }
 
 // ── Products ───────────────────────────────────────────────────────────────

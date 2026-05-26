@@ -1,6 +1,20 @@
 <template>
   <HomeLayout :narrow-feed="false">
+    <template #right-sidebar>
+      <PostDetailRightSideNav :post="post" />
+    </template>
+
     <div class="mx-auto w-full max-w-5xl">
+      <div class="mb-3 flex items-center">
+        <button
+          class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white"
+          @click="router.back()"
+        >
+          <Icon name="mdi:arrow-left" size="18" />
+          Back
+        </button>
+      </div>
+
       <div v-if="isLoading" class="py-20 text-center">
         <Icon name="eos-icons:loading" size="32" class="text-brand" />
       </div>
@@ -96,6 +110,7 @@ import { useRoute, useRouter } from 'vue-router'
 import HomeLayout from '~~/layers/feed/app/layouts/HomeLayout.vue'
 import PostDetails from '~~/layers/social/app/components/PostDetails.vue'
 import AudioPlayer from '~~/layers/social/app/components/AudioPlayer.vue'
+import PostDetailRightSideNav from '~~/layers/social/app/components/PostDetailRightSideNav.vue'
 import { usePost } from '../../composables/usePost'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 

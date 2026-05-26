@@ -194,17 +194,23 @@
                 class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-gray-50 transition-transform group-hover:scale-110 dark:bg-neutral-800"
               >
                 <img
-                  v-if="cat.thumbnailCatUrl"
+                  v-if="cat.thumbnailCatUrl && !catImgErrors[cat.id]"
                   :src="cat.thumbnailCatUrl"
                   :alt="cat.name"
                   class="h-full w-full object-cover"
+                  @error="onCatImgError(cat.id)"
                 />
-                <Icon
+                <div
                   v-else
-                  name="mdi:hanger"
-                  size="24"
-                  class="text-gray-400 dark:text-gray-500"
-                />
+                  class="flex h-full w-full items-center justify-center"
+                  :style="{ background: matchedCategory(cat.name)?.gradient ?? 'linear-gradient(135deg, #9ca3af, #6b7280)' }"
+                >
+                  <Icon
+                    :name="matchedCategory(cat.name)?.icon ?? 'mdi:hanger'"
+                    size="24"
+                    class="text-white"
+                  />
+                </div>
               </div>
               <span
                 class="line-clamp-1 text-center text-xs font-medium text-gray-700 transition-colors group-hover:text-brand dark:text-neutral-300"
@@ -371,6 +377,30 @@ const activeTab = ref<'discover' | 'ai'>('discover')
 
 const topSellers = computed(() => data.value?.topSellers ?? [])
 const categories = computed(() => data.value?.categories ?? [])
+const catImgErrors = ref<Record<string | number, boolean>>({})
+const onCatImgError = (id: string | number) => {
+  catImgErrors.value = { ...catImgErrors.value, [id]: true }
+}
+
+const CATEGORY_DEFS = [
+  { icon: 'mdi:cellphone', gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', matchTerms: ['electronic', 'phone', 'gadget', 'tech', 'computer', 'mobile', 'device', 'laptop'] },
+  { icon: 'mdi:hanger', gradient: 'linear-gradient(135deg, #ec4899, #be185d)', matchTerms: ['fashion', 'cloth', 'wear', 'apparel', 'dress', 'shoe', 'bag', 'style'] },
+  { icon: 'mdi:home-variant-outline', gradient: 'linear-gradient(135deg, #f97316, #c2410c)', matchTerms: ['home', 'furniture', 'interior', 'kitchen', 'living', 'decor', 'house'] },
+  { icon: 'mdi:face-woman-outline', gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)', matchTerms: ['beauty', 'cosmetic', 'makeup', 'skin', 'hair', 'fragrance', 'personal'] },
+  { icon: 'mdi:food-fork-drink', gradient: 'linear-gradient(135deg, #22c55e, #15803d)', matchTerms: ['food', 'drink', 'grocery', 'snack', 'beverage', 'eat', 'restaurant'] },
+  { icon: 'mdi:dumbbell', gradient: 'linear-gradient(135deg, #06b6d4, #0e7490)', matchTerms: ['sport', 'fitness', 'gym', 'exercise', 'outdoor', 'health', 'athletic'] },
+  { icon: 'mdi:tools', gradient: 'linear-gradient(135deg, #6366f1, #4338ca)', matchTerms: ['service', 'repair', 'install', 'consult', 'professional', 'hire'] },
+  { icon: 'mdi:recycle', gradient: 'linear-gradient(135deg, #f59e0b, #b45309)', matchTerms: ['preloved', 'thrift', 'second', 'used', 'vintage', 'pre-owned'] },
+  { icon: 'mdi:shopping-outline', gradient: 'linear-gradient(135deg, #14b8a6, #0f766e)', matchTerms: ['accessori', 'jewel', 'watch', 'luggage', 'wallet', 'purse'] },
+  { icon: 'mdi:toy-brick-outline', gradient: 'linear-gradient(135deg, #f43f5e, #be123c)', matchTerms: ['toy', 'kids', 'children', 'baby', 'game', 'play'] },
+  { icon: 'mdi:book-open-outline', gradient: 'linear-gradient(135deg, #84cc16, #4d7c0f)', matchTerms: ['book', 'stationery', 'office', 'school', 'art', 'music', 'education'] },
+  { icon: 'mdi:car-outline', gradient: 'linear-gradient(135deg, #64748b, #334155)', matchTerms: ['auto', 'car', 'vehicle', 'motor', 'bike', 'part'] },
+]
+
+const matchedCategory = (name: string) => {
+  const lower = name.toLowerCase()
+  return CATEGORY_DEFS.find((def) => def.matchTerms.some((t) => lower.includes(t))) ?? null
+}
 
 const socialApi = useSocialApi()
 

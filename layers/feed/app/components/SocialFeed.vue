@@ -429,11 +429,6 @@
       :product="commentProduct"
       @close="commentProduct = null"
     />
-    <PostCommentModal
-      :is-open="!!commentPost"
-      :post="commentPost"
-      @close="commentPost = null"
-    />
     <ProductDetailModal
       v-if="selectedProduct"
       :product="selectedProduct"
@@ -474,7 +469,6 @@ import StoryUploadModal from '~~/layers/feed/app/components/modals/StoryUploadMo
 import ProductDetailModal from '~~/layers/commerce/app/components/modals/ProductDetailModal.vue'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
 import ProductMarketModal from '~~/layers/commerce/app/components/modals/ProductMarketModal.vue'
-import PostCommentModal from '~~/layers/social/app/components/modals/PostCommentModal.vue'
 import ProductCommentModal from '~~/layers/commerce/app/components/modals/ProductCommentModal.vue'
 import ShopProductCard from '~~/layers/commerce/app/components/ShopProductCard.vue'
 import FeedProductShelf from '~~/layers/feed/app/components/FeedProductShelf.vue'
@@ -505,7 +499,6 @@ const { isEnrolled, fetchAffiliateStatus: fetchAffiliate } = useAffiliate()
 
 // States
 const commentProduct = ref<IProduct | null>(null)
-const commentPost = ref<IFeedItem | null>(null)
 const {
   selectedProduct,
   detailLoading: productDetailLoading,
@@ -793,7 +786,7 @@ watch(loadMoreTrigger, (el) => {
 onUnmounted(() => observer.value?.disconnect())
 
 const openPostCommentsModal = (post: IFeedItem) => {
-  selectedPost.value = post
+  selectedPost.value = post  // opens PostDetailModal which has full comments
 }
 const openPostModal = (post: IFeedItem) => {
   selectedPost.value = post

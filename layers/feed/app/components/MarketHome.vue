@@ -325,7 +325,7 @@
           v-for="post in marketPosts"
           :key="post.id"
           :post="post"
-          @open-comments="commentPost = $event"
+          @open-comments="selectedPost = $event"
           @open-details="selectedPost = $event"
           @open-product="openProduct"
         />
@@ -371,11 +371,6 @@
       :product="commentProduct"
       @close="commentProduct = null"
     />
-    <PostCommentModal
-      :is-open="!!commentPost"
-      :post="commentPost"
-      @close="commentPost = null"
-    />
     <PostDetailModal
       v-if="selectedPost"
       :post="selectedPost"
@@ -390,9 +385,9 @@ import PostCard from '~~/layers/social/app/components/PostCard.vue'
 import ProductDetailModal from '~~/layers/commerce/app/components/modals/ProductDetailModal.vue'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
 import ProductCommentModal from '~~/layers/commerce/app/components/modals/ProductCommentModal.vue'
-import PostCommentModal from '~~/layers/social/app/components/modals/PostCommentModal.vue'
 
 import { ref } from 'vue'
+import { useRouter } from '#imports'
 import { imgThumb } from '~~/layers/core/app/utils/cloudinary'
 import { useProductDetail } from '~~/layers/commerce/app/composables/useProductDetail'
 import { useMarketHome } from '../composables/useMarketHome'
@@ -401,13 +396,13 @@ import type { IProduct } from '~~/layers/social/app/types/post.types'
 
 defineEmits<{ 'sign-in': [] }>()
 
+const router = useRouter()
 const {
   selectedProduct,
   detailLoading: productDetailLoading,
   openProduct,
 } = useProductDetail()
 const commentProduct = ref<IProduct | null>(null)
-const commentPost = ref<IFeedItem | null>(null)
 const selectedPost = ref<IFeedItem | null>(null)
 
 const sqBanner = (url: string) => imgThumb(url, 144, 56)

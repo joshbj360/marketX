@@ -255,6 +255,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#imports'
 import { usePost } from '~~/layers/social/app/composables/usePost'
 import { usePostStore } from '~~/layers/social/app/store/post.store'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
@@ -262,6 +263,7 @@ import { useProductApi } from '~~/layers/commerce/app/services/product.api'
 import { useCurrency } from '~~/layers/core/app/composables/useCurrency'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 
+const router = useRouter()
 const postStore = usePostStore()
 const { fetchSavedPosts, unsavePost, isLoading, normalizePost } = usePost()
 const { formatKobo } = useCurrency()
@@ -302,7 +304,7 @@ const firstMedia = (post: any) => {
 }
 
 const openPost = (post: any) => {
-  selectedPost.value = normalizePost(post)
+  router.push(`/post/${post.id}`)
 }
 const handleUnsave = async (id: string) => {
   await unsavePost(id)

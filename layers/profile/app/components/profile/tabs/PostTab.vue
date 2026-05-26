@@ -148,6 +148,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#imports'
 import { usePostStore } from '~~/layers/social/app/store/post.store'
 import { usePost } from '~~/layers/social/app/composables/usePost'
 import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
@@ -160,6 +161,7 @@ const props = defineProps<{
   isOwnProfile: boolean
 }>()
 
+const router = useRouter()
 const postStore = usePostStore()
 const { fetchUserPosts, isLoading, normalizePost } = usePost()
 
@@ -196,9 +198,8 @@ const firstMedia = (post: any) => {
   return post.media ?? null
 }
 
-// Convert IPost → IFeedItem shape before opening PostDetailModal
 const openPost = (post: any) => {
-  selectedPost.value = normalizePost(post)
+  router.push(`/post/${post.id}`)
 }
 
 const openEdit = (post: any) => {

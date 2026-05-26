@@ -94,7 +94,7 @@
       <!-- Comment -->
       <button
         class="flex items-center gap-1.5 text-xs font-semibold text-gray-400 transition hover:text-brand dark:text-neutral-500"
-        @click="commentPost = normalizePost(post)"
+        @click="router.push(`/post/${post.id}`)"
       >
         <Icon name="mdi:comment-outline" size="16" />
         {{ post._count.comments > 0 ? post._count.comments : '' }}
@@ -104,22 +104,15 @@
 
   </div>
 
-  <!-- Comment modal -->
-  <PostDetailModal
-    v-if="commentPost"
-    :post="commentPost"
-    @close="commentPost = null"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from '#imports'
 import { imgAvatar } from '~~/layers/core/app/utils/cloudinary'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import { useWallApi, type WallType } from '~~/layers/social/app/services/wall.api'
 import { usePostApi } from '~~/layers/social/app/services/post.api'
-import PostDetailModal from '~~/layers/social/app/components/modals/PostDetailModal.vue'
-import { normalizePost } from '~~/layers/social/app/composables/usePost'
 import type { IWallPost } from '~~/layers/social/app/services/wall.api'
 
 const props = defineProps<{
@@ -133,8 +126,8 @@ const emit = defineEmits<{
   deleted: [postId: string]
 }>()
 
+const router = useRouter()
 const profileStore = useProfileStore()
-const commentPost = ref<any>(null)
 const deleting = ref(false)
 
 const localLiked = ref(props.post.viewerLiked)
