@@ -442,10 +442,10 @@ export const productRepository = {
       }
     }
 
-    // Remove individual media items
+    // Remove individual media items — productId filter prevents cross-product IDOR
     if (data.removeMediaIds?.length) {
       await prisma.media.deleteMany({
-        where: { id: { in: data.removeMediaIds } },
+        where: { id: { in: data.removeMediaIds }, productId: id },
       })
     }
 

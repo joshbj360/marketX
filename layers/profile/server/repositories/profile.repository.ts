@@ -80,9 +80,9 @@ export const profileRepository = {
       followingUsersCount,
       followingSellersCount,
     ] = await Promise.all([
-      // Posts count
+      // Posts count — exclude wall shoutout posts to match the profile tab listing
       prisma.post.count({
-        where: { authorId: userId },
+        where: { authorId: userId, wallTargetType: null },
       }),
 
       // Likes received on posts

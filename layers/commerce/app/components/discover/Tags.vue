@@ -84,6 +84,7 @@
               Trending now
             </p>
           </div>
+          <div class="relative">
           <div
             class="scrollbar-hide -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2"
           >
@@ -107,6 +108,8 @@
                 {{ tag._count.products ? 'products' : 'posts' }}
               </span>
             </button>
+          </div>
+          <div class="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent dark:from-neutral-950" />
           </div>
         </div>
 

@@ -352,7 +352,7 @@ const formatNum = (n: number) => {
   return n.toString()
 }
 
-const trendingLoading = ref(false)
+const trendingLoading = ref(true)
 const trendingProducts = ref<IProduct[]>([])
 const trendingTags = ref<any[]>([])
 const featuredSellers = ref<any[]>([])
@@ -360,7 +360,7 @@ const featuredSellers = ref<any[]>([])
 const freshStrip = ref<IProduct[]>([])
 const dealStrip = ref<IProduct[]>([])
 const prelovedStrip = ref<IProduct[]>([])
-const stripsLoading = ref(false)
+const stripsLoading = ref(true)
 
 const loadTrending = async () => {
   trendingLoading.value = true

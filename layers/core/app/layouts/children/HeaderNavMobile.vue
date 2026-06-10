@@ -18,7 +18,11 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2">
-        <button @click="$emit('open-cart')" aria-label="Cart" class="header-button">
+        <button
+          aria-label="Cart"
+          class="header-button"
+          @click="$emit('open-cart')"
+        >
           <div class="relative">
             <Icon name="mdi:shopping-outline" size="26" />
             <span
@@ -28,16 +32,16 @@
             >
           </div>
         </button>
-        <NuxtLink to="/discover" class="header-button" aria-label="Discover">
-          <Icon name="mdi:store-search-outline" size="24" />
+        <NuxtLink to="/map" class="header-button" aria-label="Near Me">
+          <Icon name="mdi:map-marker-radius-outline" size="24" />
         </NuxtLink>
 
         <ClientOnly>
           <button
             v-if="profileStore.isLoggedIn"
-            @click="$emit('open-notifications')"
             aria-label="Notifications"
             class="header-button relative"
+            @click="$emit('open-notifications')"
           >
             <Icon name="mdi:bell-outline" size="24" />
             <span

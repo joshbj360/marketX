@@ -356,7 +356,7 @@ export const productService = {
     // Must have at least one delivered order containing this product
     const deliveredOrder = await prisma.orders.findFirst({
       where: {
-        profileId: userId,
+        userId,
         status: 'DELIVERED',
         orderItem: {
           some: {

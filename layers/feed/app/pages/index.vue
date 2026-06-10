@@ -9,9 +9,9 @@
         <SocialFeed v-if="profileStore.isLoggedIn" key="social" />
         <MarketHome v-else key="market" @sign-in="router.push('/user-login')" />
       </Transition>
-      <!-- Fallback shown during SSR/hydration — lightweight to avoid duplicate onMounted -->
+      <!-- Fallback shown during SSR/hydration — render MarketHome so page isn't blank on first paint -->
       <template #fallback>
-        <div class="min-h-screen" />
+        <MarketHome @sign-in="router.push('/user-login')" />
       </template>
     </ClientOnly>
 

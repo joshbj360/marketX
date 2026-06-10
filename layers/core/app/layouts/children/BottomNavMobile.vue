@@ -5,13 +5,23 @@
   >
     <div class="flex h-16 items-center justify-around px-2">
       <!-- Home -->
-      <NuxtLink to="/" class="nav-item" :class="{ active: isHome }" aria-label="Home">
+      <NuxtLink
+        to="/"
+        class="nav-item"
+        :class="{ active: isHome }"
+        aria-label="Home"
+      >
         <Icon :name="isHome ? 'mdi:home' : 'mdi:home-outline'" size="26" />
       </NuxtLink>
 
       <!-- Near Me -->
-      <NuxtLink to="/map" class="nav-item" active-class="active" aria-label="Near Me">
-        <Icon name="mdi:map-marker-radius-outline" size="26" />
+      <NuxtLink
+        to="/squares"
+        class="nav-item"
+        active-class="active"
+        aria-label="Near Me"
+      >
+        <Icon name="mdi:storefront" size="26" />
       </NuxtLink>
 
       <!-- Create (centre CTA) — logged in: open create modal; guest: go to register -->
@@ -43,10 +53,15 @@
         </template>
       </ClientOnly>
 
-      <!-- Squares -->
-      <NuxtLink to="/squares" class="nav-item" active-class="active" aria-label="Squares">
+      <!-- Discover -->
+      <NuxtLink
+        to="/discover"
+        class="nav-item"
+        :class="{ active: isDiscover }"
+        aria-label="Discover"
+      >
         <Icon
-          :name="isSquares ? 'mdi:storefront' : 'mdi:storefront-outline'"
+          :name="isDiscover ? 'mdi:store-search' : 'mdi:store-search-outline'"
           size="26"
         />
       </NuxtLink>
@@ -100,9 +115,12 @@
                 <span>My Stores</span>
               </NuxtLink>
               <NuxtLink
-                v-if="profileStore.me?.role === 'admin' || profileStore.me?.role === 'moderator'"
+                v-if="
+                  profileStore.me?.role === 'admin' ||
+                  profileStore.me?.role === 'moderator'
+                "
                 to="/admin"
-                class="menu-item text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                class="menu-item text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
                 @click="menuOpen = false"
               >
                 <Icon name="mdi:shield-crown-outline" size="18" />
@@ -162,6 +180,9 @@ const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
 const isHome = computed(() => route.path === '/')
+const isDiscover = computed(
+  () => route.path === '/discover' || route.path.startsWith('/discover'),
+)
 const isSquares = computed(() => route.path.startsWith('/squares'))
 const isProfileActive = computed(
   () => route.path.startsWith('/profile') || route.path.startsWith('/seller'),

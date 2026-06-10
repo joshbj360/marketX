@@ -131,16 +131,18 @@ export const orderService = {
 
     // ── Atomic transaction: create order + decrement stock together ───────────
     const order = await prisma.$transaction(async (tx) => {
-      // Re-check stock inside the transaction to prevent race conditions
+      // Decrement stock with a conditional UPDATE — single atomic operation that
+      // eliminates the read-check-decrement race. If another concurrent order already
+      // claimed the last unit, stock drops below quantity and updateMany returns count=0.
       for (const item of enrichedItems) {
-        const locked = await tx.productVariant.findUnique({
-          where: { id: item.variantId },
-          select: { stock: true },
+        const result = await tx.productVariant.updateMany({
+          where: { id: item.variantId, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } },
         })
-        if (!locked || locked.stock < item.quantity) {
+        if (result.count === 0) {
           throw new UserError(
             'INSUFFICIENT_STOCK',
-            `Stock changed for variant ${item.variantId}`,
+            `Stock unavailable for variant ${item.variantId}`,
             400,
           )
         }
@@ -203,16 +205,6 @@ export const orderService = {
           },
         },
       })
-
-      // Decrement stock atomically with the order creation
-      await Promise.all(
-        enrichedItems.map((item) =>
-          tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { stock: { decrement: item.quantity } },
-          }),
-        ),
-      )
 
       return created
     })

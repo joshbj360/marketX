@@ -86,8 +86,7 @@
                 />
               </div>
               <p class="mt-0.5 text-[11px] text-gray-500 dark:text-neutral-400">
-                {{ formatNum(seller.followers_count || 0) }} followers ·
-                {{ seller._count?.products || 0 }} items
+                <template v-if="seller.followers_count">{{ formatNum(seller.followers_count) }} followers · </template>{{ seller._count?.products || 0 }} items
               </p>
             </div>
           </div>
