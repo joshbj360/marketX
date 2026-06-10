@@ -64,6 +64,33 @@ export const postRepository = {
   },
 
   // ========== POSTS ==========
+  // ── Hashtag helpers ──────────────────────────────────────────────────────────
+
+  extractHashtags(text?: string | null): string[] {
+    if (!text) return []
+    // Matches #tag at word boundary; tag must start with a letter, max 30 chars
+    const matches = [...text.matchAll(/(?<!\w)#([a-zA-Z][a-zA-Z0-9_]{0,29})/g)]
+    return [...new Set(matches.map(m => m[1]!.toLowerCase()))]
+  },
+
+  async linkHashtags(postId: string, caption?: string | null, content?: string | null) {
+    const names = [...new Set([
+      ...postRepository.extractHashtags(caption),
+      ...postRepository.extractHashtags(content),
+    ])]
+    if (!names.length) return
+
+    const tags = await Promise.all(
+      names.map(name =>
+        prisma.tag.upsert({ where: { name }, create: { name }, update: {}, select: { id: true } }),
+      ),
+    )
+    await prisma.postTags.createMany({
+      data: tags.map(t => ({ postId, tagId: t.id })),
+      skipDuplicates: true,
+    })
+  },
+
   async createPost(userId: string, data: any) {
     // Inherit squareId from the author's primary Square (if they are a seller)
     const sellerProfile = await prisma.sellerProfile.findFirst({
@@ -123,10 +150,15 @@ export const postRepository = {
       postData.media = { create: mediaCreates }
     }
 
-    return await prisma.post.create({
+    const post = await prisma.post.create({
       data: postData,
       include: postInclude,
     })
+
+    // Fire-and-forget — never block the response for tag linking
+    postRepository.linkHashtags(post.id, data.caption, data.content).catch(() => {})
+
+    return post
   },
 
   async getPostById(postId: string) {

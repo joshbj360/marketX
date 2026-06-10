@@ -188,7 +188,7 @@ import BaseButton from '~~/layers/ui/app/components/BaseButton.vue'
 import StoresTab from '../../components/profile/tabs/StoresTab.vue'
 import MediaTab from '../../components/profile/tabs/MediaTab.vue'
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({})
 
 const route = useRoute()
 const router = useRouter()
@@ -282,7 +282,13 @@ const loadProfile = async (uname: string) => {
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────────
+const requireLogin = () => {
+  router.push(`/user-login?redirect=${encodeURIComponent(route.fullPath)}`)
+  return true
+}
+
 const handleFollow = async () => {
+  if (!profileStore.me) { requireLogin(); return }
   isFollowLoading.value = true
   try {
     await followUser(username.value)
@@ -295,6 +301,7 @@ const handleFollow = async () => {
 }
 
 const handleUnfollow = async () => {
+  if (!profileStore.me) { requireLogin(); return }
   isFollowLoading.value = true
   try {
     await unfollowUser(username.value)
@@ -309,6 +316,7 @@ const handleUnfollow = async () => {
 const retryFetch = () => loadProfile(username.value)
 
 const startConversation = () => {
+  if (!profileStore.me) { requireLogin(); return }
   if (profile.value) router.push(`/messages/new?user=${profile.value.id}`)
 }
 

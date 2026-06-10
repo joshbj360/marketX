@@ -40,17 +40,16 @@
         :to="`/sellers/profile/${seller.store_slug}`"
         class="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all hover:border-brand/20 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
       >
-        <div
-          class="relative h-20 overflow-hidden bg-brand"
-        >
-          <BaseImage
-            v-if="seller.store_banner"
-            :src="seller.store_banner"
+        <div class="relative h-20 overflow-hidden">
+          <img
+            :src="seller.store_banner || `https://picsum.photos/seed/${encodeURIComponent(seller.store_slug)}/400/80`"
             :alt="seller.store_name"
-            :width="400"
-            :height="80"
-            class="h-full w-full opacity-80"
+            class="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
+          <!-- subtle dark scrim so the logo chip pops -->
+          <div class="pointer-events-none absolute inset-0 bg-black/20" />
         </div>
         <div class="relative -mt-6 px-3 pb-4">
           <div

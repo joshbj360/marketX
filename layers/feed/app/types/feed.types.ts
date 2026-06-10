@@ -47,6 +47,7 @@ export interface IFeedItem {
   caption: string
   content?: string | null // For posts: text content; For products: description
   contentType: string // For posts: EXPERIENCE, INSPIRATION, etc.
+  mentions?: Array<{ type: 'seller' | 'user'; handle: string }> | null
 
   // Engagement metrics
   likeCount: number

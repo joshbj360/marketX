@@ -436,10 +436,6 @@ import BaseBadge from '~~/layers/ui/app/components/BaseBadge.vue'
 
 definePageMeta({ middleware: 'auth', layout: 'store-layout' })
 
-watch(() => seller.value?.store_name, (name) => {
-  useSeo().setDashboardPage(name ?? undefined)
-}, { immediate: true })
-
 const route = useRoute()
 const storeSlug = computed(() => route.params.storeSlug as string)
 
@@ -451,6 +447,10 @@ const seller = computed(
     sellers.value.find((s) => s.store_slug === storeSlug.value) ??
     null,
 )
+
+watch(() => seller.value?.store_name, (name) => {
+  useSeo().setDashboardPage(name ?? undefined)
+}, { immediate: true })
 const { fetchSellerProducts } = useProduct()
 const sellerApi = useSellerApi()
 const orderApi = useOrderApi()

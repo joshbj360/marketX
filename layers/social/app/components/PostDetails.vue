@@ -80,7 +80,7 @@
     <div ref="commentsContainer" class="min-h-0 flex-1 sm:overflow-y-auto sm:overscroll-contain">
       <div class="space-y-4 p-4">
         <!-- Caption / Content -->
-        <div v-if="cleanCaption || post.content" class="flex items-start gap-3">
+        <div v-if="post.caption || post.content" class="flex items-start gap-3">
           <NuxtLink :to="`/profile/${post.author?.username}`" class="shrink-0">
             <Avatar
               :username="post.author?.username ?? 'User'"
@@ -95,13 +95,9 @@
               v-if="post.contentType === 'INSPIRATION'"
               class="rounded-xl border-l-4 border-amber-400 bg-amber-50/70 px-4 py-3 dark:bg-amber-950/20"
             >
-              <p
-                class="text-sm italic leading-relaxed text-gray-900 dark:text-neutral-100"
-              >
-                <span class="mr-1.5 font-semibold not-italic">{{
-                  post.author?.username
-                }}</span>
-                {{ cleanCaption || post.content }}
+              <p class="text-sm italic leading-relaxed text-gray-900 dark:text-neutral-100">
+                <span class="mr-1.5 font-semibold not-italic">{{ post.author?.username }}</span>
+                <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
               </p>
             </div>
 
@@ -110,21 +106,8 @@
               v-else
               class="text-sm leading-relaxed text-gray-900 dark:text-neutral-100"
             >
-              <span class="mr-1.5 font-semibold">{{
-                post.author?.username
-              }}</span>
-              {{ cleanCaption || post.content }}
-            </p>
-
-            <!-- Hashtags -->
-            <p v-if="hashtags.length" class="mt-2 flex flex-wrap gap-1.5">
-              <span
-                v-for="(tag, i) in hashtags"
-                :key="i"
-                class="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand dark:bg-brand/20"
-              >
-                {{ tag }}
-              </span>
+              <span class="mr-1.5 font-semibold">{{ post.author?.username }}</span>
+              <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
             </p>
 
             <p class="mt-2 text-xs text-gray-500 dark:text-neutral-400">
@@ -279,7 +262,7 @@
           v-if="
             !isLoadingComments &&
             !comments.length &&
-            !cleanCaption &&
+            !post.caption &&
             !post.content
           "
           class="flex flex-col items-center justify-center py-12 text-center"
@@ -453,6 +436,7 @@ import { usePostStore } from '../store/post.store'
 import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import FollowButton from '~~/layers/profile/app/components/FollowButton.vue'
 import TaggedProductsDisplay from './TaggedProductsDisplay.vue'
+import PostCaption from './PostCaption.vue'
 import Avatar from '~~/layers/profile/app/components/Avatar.vue'
 import AudioPlayer from './AudioPlayer.vue'
 import TextEditor from './TextEditor.vue'
@@ -546,22 +530,6 @@ const contentTypeDef = computed(
 const contentTypeLabel = computed(() => contentTypeDef.value.label)
 const badgeIcon = computed(() => contentTypeDef.value.icon)
 const badgeClass = computed(() => contentTypeDef.value.badge)
-
-// Caption Cleaning & Hashtags
-const cleanCaption = computed(() => {
-  if (!props.post.caption) return ''
-  let stripped = props.post.caption.replace(/#\w+/g, '').trim()
-  if (typeof document !== 'undefined') {
-    const tmp = document.createElement('div')
-    tmp.innerHTML = stripped
-    stripped = (tmp.textContent || tmp.innerText || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-  return stripped
-})
-
-const hashtags = computed(() => props.post.caption?.match(/#\w+/g) || [])
 
 // Tagged Products
 const taggedProducts = computed(() =>

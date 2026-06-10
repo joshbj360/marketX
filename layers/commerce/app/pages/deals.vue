@@ -34,7 +34,7 @@
         <NuxtLink
           v-for="product in products"
           :key="product.id"
-          :to="`/sellers/profile/${product.store_slug}/products/${product.slug}`"
+          :to="`/product/${product.slug}`"
           class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-neutral-700 dark:bg-neutral-800"
         >
           <!-- Image -->

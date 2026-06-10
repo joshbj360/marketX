@@ -87,7 +87,7 @@
 
     <!-- Caption (media posts) -->
     <div
-      v-if="hasMedia && (cleanCaption || post.content)"
+      v-if="hasMedia && (post.caption || post.content)"
       class="mt-0.5 px-0"
     >
       <p class="text-[13px] leading-snug text-gray-900 dark:text-neutral-100">
@@ -100,8 +100,9 @@
           class="cursor-pointer"
           :class="isCaptionLong && !textExpanded ? 'line-clamp-2' : ''"
           @click.stop="emit('open-details')"
-          >{{ cleanCaption || post.content }}</span
         >
+          <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
+        </span>
         <button
           v-if="isCaptionLong && !textExpanded"
           class="ml-0.5 text-gray-400 dark:text-neutral-500"
@@ -110,17 +111,6 @@
           {{ $t('common.more') }}
         </button>
       </p>
-    </div>
-
-    <!-- Hashtags -->
-    <div v-if="hashtags.length > 0" class="mt-1 flex flex-wrap gap-x-1.5 gap-y-1 px-1">
-      <NuxtLink
-        v-for="(tag, i) in hashtags"
-        :key="i"
-        :to="`/discover?tab=tags&tagName=${tag.slice(1)}`"
-        class="text-[13px] font-semibold text-brand transition-opacity hover:opacity-70 dark:text-pink-400"
-        @click.stop
-      >{{ tag }}</NuxtLink>
     </div>
 
     <!-- View all comments -->
@@ -167,6 +157,7 @@
 import { ref, computed } from 'vue'
 import LikesModal from '../modals/LikesModal.vue'
 import TaggedProductsDisplay from '../TaggedProductsDisplay.vue'
+import PostCaption from '../PostCaption.vue'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
 
 const props = defineProps<{
@@ -192,24 +183,6 @@ const { t } = useI18n()
 const showLikes = ref(false)
 const textExpanded = ref(false)
 
-// ─── Caption ──────────────────────────────────────────────────────────────────
-const cleanCaption = computed(() => {
-  if (!props.post.caption) return ''
-  const withoutHashtags = props.post.caption.replace(/#\w+/g, '').trim()
-  if (typeof document !== 'undefined') {
-    const temp = document.createElement('div')
-    temp.innerHTML = withoutHashtags
-    return (temp.textContent || temp.innerText || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-  return withoutHashtags
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-})
-
-const hashtags = computed(() => props.post.caption?.match(/#\w+/g) || [])
 const isCaptionLong = computed(
   () =>
     (props.post.caption?.length ?? 0) + (props.post.content?.length ?? 0) > 120,

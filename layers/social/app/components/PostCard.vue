@@ -17,7 +17,7 @@
     />
 
     <!-- ─── Text-only body ───────────────────────────────────────────── -->
-    <template v-if="!hasMedia && (cleanCaption || post.content)">
+    <template v-if="!hasMedia && (post.caption || post.content)">
       <!-- INSPIRATION: quote-style card -->
       <div
         v-if="post.contentType === 'INSPIRATION'"
@@ -32,8 +32,9 @@
         <p
           class="whitespace-pre-wrap text-[15px] font-medium italic leading-relaxed text-gray-900 dark:text-neutral-100"
           :class="isTextLong && !textExpanded ? 'line-clamp-6' : ''"
-          v-html="renderedCaption || post.content"
-        />
+        >
+          <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
+        </p>
         <button
           v-if="isTextLong && !textExpanded"
           class="mt-1 text-[12px] text-amber-500"
@@ -52,8 +53,9 @@
         <p
           class="whitespace-pre-wrap text-[14px] leading-relaxed text-gray-900 dark:text-neutral-100"
           :class="isTextLong && !textExpanded ? 'line-clamp-6' : ''"
-          v-html="renderedCaption || post.content"
-        />
+        >
+          <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
+        </p>
         <button
           v-if="isTextLong && !textExpanded"
           class="mt-1 text-[12px] text-orange-500"
@@ -79,13 +81,14 @@
             :class="[
               isTextLong
                 ? 'text-[14px]'
-                : (cleanCaption || post.content || '').length < 80
+                : (post.caption || post.content || '').length < 80
                   ? 'text-center text-[20px] font-semibold'
                   : 'text-[15px] font-medium',
               isTextLong && !textExpanded ? 'line-clamp-6' : '',
             ]"
-            v-html="renderedCaption || post.content"
-          />
+          >
+            <PostCaption :caption="post.caption || post.content" :mentions="post.mentions" />
+          </p>
         </div>
         <button
           v-if="isTextLong && !textExpanded"
@@ -156,6 +159,7 @@ import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
 import PostCardHeader from './post-card/PostCardHeader.vue'
 import PostMediaGallery from './post-card/PostMediaGallery.vue'
 import PostCardActions from './post-card/PostCardActions.vue'
+import PostCaption from './PostCaption.vue'
 
 const { t } = useI18n()
 
@@ -376,53 +380,6 @@ const onImageError = () => {
   imageLoaded.value = true
 }
 
-// ─── Caption ──────────────────────────────────────────────────────────────────
-const cleanCaption = computed(() => {
-  if (!props.post.caption) return ''
-  const withoutHashtags = props.post.caption.replace(/#\w+/g, '').trim()
-  if (typeof document !== 'undefined') {
-    const temp = document.createElement('div')
-    temp.innerHTML = withoutHashtags
-    return (temp.textContent || temp.innerText || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-  }
-  return withoutHashtags
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-})
-
-// ─── @mention rendering ────────────────────────────────────────────────────────
-// Replaces @handle in caption with styled anchor links for known mentions.
-// We only match handles that are stored in post.mentions — no XSS risk.
-const renderedCaption = computed(() => {
-  const text = cleanCaption.value
-  if (!text) return ''
-  const rawMentions: any[] = (props.post as any).mentions ?? []
-  if (!rawMentions.length) return escapeHtml(text)
-
-  const mentionMap = new Map(rawMentions.map((m: any) => [m.handle, m]))
-
-  return escapeHtml(text).replace(/@([\w-]+)/g, (match, handle) => {
-    const m = mentionMap.get(handle)
-    if (!m) return match
-    const href = m.type === 'seller'
-      ? `/sellers/profile/${m.handle}`
-      : `/@${m.handle}`
-    return `<a href="${href}" class="post-mention" onclick="event.stopPropagation()">@${escapeHtml(handle)}</a>`
-  })
-})
-
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-const hashtags = computed(() => props.post.caption?.match(/#\w+/g) || [])
 const isCaptionLong = computed(
   () =>
     (props.post.caption?.length ?? 0) + (props.post.content?.length ?? 0) > 120,
@@ -622,16 +579,4 @@ onUnmounted(() => {
 })
 </script>
 
-<style>
-/* @mention links rendered inside v-html captions */
-.post-mention {
-  color: #F43F5E;
-  font-weight: 600;
-  text-decoration: none;
-  border-radius: 4px;
-  padding: 0 1px;
-  transition: opacity 0.12s;
-}
-.post-mention:hover { opacity: 0.75; text-decoration: underline; }
-</style>
 

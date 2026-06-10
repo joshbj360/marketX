@@ -16,6 +16,9 @@
 import { prisma } from '~~/server/utils/db'
 import { bust } from '~~/server/utils/cache'
 import { notificationQueue } from '~~/server/queues/notification.queue'
+
+// Bust stale list cache on deploy — followerCount shape changed
+bust('squares:list:*').catch(() => {})
 import { entityEmbedder } from '~~/layers/ai/server/services/entity-embedder.service'
 import type {
   CreateSquareInput,
@@ -102,14 +105,17 @@ export const squareService = {
 
     const rows = await prisma.square.findMany({
       where,
-      select: SQUARE_CARD_SELECT,
+      select: { ...SQUARE_CARD_SELECT, _count: { select: { followers: true } } },
       orderBy: [{ type: 'asc' }, { memberCount: 'desc' }],
       take: limit + 1,
       skip: offset,
     })
 
     const hasMore = rows.length > limit
-    const squares = hasMore ? rows.slice(0, limit) : rows
+    const squares = (hasMore ? rows.slice(0, limit) : rows).map(({ _count, ...s }) => ({
+      ...s,
+      followerCount: _count.followers,
+    }))
 
     return { squares, hasMore, limit, offset }
   },

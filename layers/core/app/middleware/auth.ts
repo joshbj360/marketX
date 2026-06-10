@@ -12,7 +12,7 @@ import { useProfileStore } from '~~/layers/profile/app/stores/profile.store'
  * })
  */
 
-export default defineNuxtRouteMiddleware(() => {
+export default defineNuxtRouteMiddleware((to) => {
   // Skip auth check on server — profile store is always empty during SSR
   if (import.meta.server) return
 
@@ -20,8 +20,7 @@ export default defineNuxtRouteMiddleware(() => {
 
   // If not logged in, redirect to login and preserve the return URL
   if (!profileStore.isLoggedIn) {
-    const route = useRoute()
-    const redirect = route.fullPath !== '/user-login' ? route.fullPath : undefined
+    const redirect = to.fullPath !== '/user-login' ? to.fullPath : undefined
     return navigateTo(redirect ? `/user-login?redirect=${encodeURIComponent(redirect)}` : '/user-login')
   }
 

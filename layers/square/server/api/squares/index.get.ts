@@ -1,7 +1,7 @@
 // GET /api/squares — browse all active Squares
 import { z } from 'zod'
 import { squareService } from '../../services/square.service'
-import { remember } from '~~/server/utils/cache'
+import { remember, bust } from '~~/server/utils/cache'
 
 const querySchema = z.object({
   type: z.enum(['GEOGRAPHIC', 'CATEGORY']).optional(),
@@ -16,9 +16,9 @@ export default defineEventHandler(async (event) => {
   const query = await getValidatedQuery(event, (d) => querySchema.parse(d))
   const cacheKey = `squares:list:${query.limit}:${query.offset}:${query.type ?? ''}:${query.city ?? ''}:${query.state ?? ''}:${query.search ?? ''}`
 
-  const result = await remember(cacheKey, 300, () => squareService.listSquares(query))
+  const result = await remember(cacheKey, 60, () => squareService.listSquares(query))
 
-  setHeader(event, 'Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+  setHeader(event, 'Cache-Control', 'public, max-age=60, stale-while-revalidate=120')
   return {
     success: true,
     data: result.squares,

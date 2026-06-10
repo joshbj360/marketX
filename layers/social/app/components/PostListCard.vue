@@ -67,7 +67,10 @@
       <p
         class="line-clamp-2 text-[13px] leading-snug text-gray-900 dark:text-neutral-100"
       >
-        {{ cleanText || post.content }}
+        <PostCaption
+          :caption="post.caption || post.content"
+          :mentions="post.mentions"
+        />
       </p>
 
       <!-- Actions -->
@@ -131,6 +134,7 @@ import { useShareModal } from '~~/layers/social/app/composables/useShareModal'
 import { notify } from '@kyvg/vue3-notification'
 import { imgThumb, videoThumb } from '~~/layers/core/app/utils/cloudinary'
 import type { IFeedItem } from '~~/layers/feed/app/types/feed.types'
+import PostCaption from './PostCaption.vue'
 
 const props = defineProps<{ post: IFeedItem }>()
 const emit = defineEmits<{
@@ -256,16 +260,6 @@ const ctDef = computed(() => CT_MAP[props.post.contentType] ?? CT_DEFAULT)
 const contentTypeLabel = computed(() =>
   t(`contentType.${props.post.contentType}`, props.post.contentType),
 )
-
-// ── Caption ───────────────────────────────────────────────────────────────────
-const cleanText = computed(() => {
-  const raw = props.post.caption || ''
-  return raw
-    .replace(/#\w+/g, '')
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-})
 
 // ── Time ──────────────────────────────────────────────────────────────────────
 const timeAgo = (date: Date | string) => {

@@ -135,7 +135,6 @@
 </template>
 
 <script setup lang="ts">
-import type { IProduct } from '~~/layers/commerce/app/types/commerce.types'
 import type { Category } from '~~/shared/types/category'
 import HomeLayout from '~~/layers/feed/app/layouts/HomeLayout.vue'
 import ProductDetailModal from '~~/layers/commerce/app/components/modals/ProductDetailModal.vue'

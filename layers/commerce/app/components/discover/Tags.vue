@@ -5,7 +5,11 @@
       <div class="mb-5 flex items-center gap-3">
         <button
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
-          @click="selectedTag = null; tagProducts = []; tagTotal = 0"
+          @click="
+            selectedTag = null
+            tagProducts = []
+            tagTotal = 0
+          "
         >
           <Icon name="mdi:arrow-left" size="18" />
         </button>
@@ -99,8 +103,7 @@
                 class="mt-1 text-sm font-bold text-gray-900 dark:text-neutral-100"
                 >{{ tag.name }}</span
               >
-              <span
-                class="mt-1 text-[11px] text-gray-400 dark:text-neutral-500"
+              <span class="mt-1 text-[11px] text-gray-400 dark:text-neutral-500"
                 >{{ tag._count.products || tag._count.posts }}
                 {{ tag._count.products ? 'products' : 'posts' }}</span
               >

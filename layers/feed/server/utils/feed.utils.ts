@@ -46,6 +46,7 @@ export const normalizePost = (post: IPost): IFeedItem => {
     caption: post.caption || '',
     content: post.content || null,
     contentType: post.contentType || 'COMMERCE',
+    mentions: (post as any).mentions ?? null,
     likeCount: post._count?.likes || 0,
     commentCount: post._count?.comments || 0,
     shareCount: post._count?.shares || 0,

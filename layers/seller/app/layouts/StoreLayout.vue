@@ -23,7 +23,9 @@
 
       <!-- Store Switcher -->
       <div class="border-b border-gray-200 px-3 py-2.5 dark:border-neutral-800">
-        <StoreSwitcher />
+        <ClientOnly>
+          <StoreSwitcher />
+        </ClientOnly>
       </div>
 
       <!-- Nav Links -->
@@ -110,7 +112,9 @@
           </div>
         </NuxtLink>
         <div class="min-w-0 flex-1">
-          <StoreSwitcher />
+          <ClientOnly>
+            <StoreSwitcher />
+          </ClientOnly>
         </div>
       </header>
 

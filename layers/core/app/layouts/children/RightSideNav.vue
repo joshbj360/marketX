@@ -69,7 +69,7 @@
                 <NuxtLink
                   v-for="p in searchResults.products.slice(0, 3)"
                   :key="p.id"
-                  :to="`/sellers/profile/${p.store_slug}/products/${p.slug}`"
+                  :to="`/product/${p.slug}`"
                   class="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-neutral-800"
                   @click="clearSearch"
                 >
@@ -309,7 +309,7 @@
             <NuxtLink
               v-for="deal in activeDeals.slice(0, 3)"
               :key="deal.id"
-              :to="`/sellers/profile/${deal.store_slug}/products/${deal.slug}`"
+              :to="`/product/${deal.slug}`"
               class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-neutral-800/60"
             >
               <div
@@ -386,7 +386,7 @@
               <NuxtLink
                 v-for="p in trendingProducts.slice(0, 3)"
                 :key="p.id"
-                :to="`/sellers/profile/${p.store_slug}/products/${p.slug}`"
+                :to="`/product/${p.slug}`"
                 class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-neutral-800/60"
               >
                 <div
